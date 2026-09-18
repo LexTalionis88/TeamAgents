@@ -1,0 +1,29 @@
+services:
+  agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      MCP_SERVER_DLL: /app/mcp-server/McpServer.dll
+      DOTNET_DiagnosticPorts: /diag/dotnet-monitor.sock
+      OLLAMA_HOST: http://host.docker.internal:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:1.7b}
+    volumes:
+      - diagnostics:/diag
+    depends_on:
+      monitor:
+        condition: service_started
+  monitor:
+    image: mcr.microsoft.com/dotnet/monitor:latest
+    # Для dev: общий diagnostic volume создаётся с root-владельцем Docker.
+    user: "0:0"
+    command: ["collect", "--no-auth", "--urls", "http://*:52323", "--diagnostic-port", "/diag/dotnet-monitor.sock"]
+    ports:
+      - "${DOTNET_MONITOR_PORT:-52324}:52323"
+    volumes:
+      - diagnostics:/diag
+      - monitor-data:/tmp
+
+volumes:
+  diagnostics:
+  monitor-data:
