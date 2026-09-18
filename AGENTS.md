@@ -33,6 +33,7 @@
 - Typed-контракты агентов: **[typed-contracts.md](docs/ai/observability/typed-contracts.md)**.
 - Correlation и metadata workflow: **[correlation.md](docs/ai/observability/correlation.md)**.
 - Пример разбора trace: **[trace-review.md](docs/ai/observability/trace-review.md)**.
+- Правила эскалации workflow: **[escalation.md](docs/ai/observability/escalation.md)**.
 
 При изменении архитектуры обновляй соответствующий документ memory bank в том же
 изменении.

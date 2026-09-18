@@ -1,42 +1,71 @@
 namespace AgentClient;
 
-/// <summary>Вопрос, который запускает архитектурный workflow.</summary>
 public sealed record ArchitectureQuestion(
     string Question,
     string Context,
     IReadOnlyList<string> Constraints);
 
-/// <summary>Решение по архитектуре, передаваемое на реализацию.</summary>
 public sealed record ArchitectureDecision(
     string Summary,
     IReadOnlyList<string> Decisions,
     IReadOnlyList<string> TradeOffs,
-    IReadOnlyList<string> AffectedAreas);
+    IReadOnlyList<string> AffectedAreas,
+    bool RequirementsAccepted,
+    IReadOnlyList<string> ChangedRequirements);
 
-/// <summary>Результат предполагаемой реализации архитектурного решения.</summary>
 public sealed record ImplementationResult(
     bool Implemented,
     string Summary,
     IReadOnlyList<string> ChangedAreas,
-    IReadOnlyList<string> RemainingWork);
+    IReadOnlyList<string> RemainingWork,
+    bool NeedsClarification,
+    ArchitectureQuestion? ArchitectureQuestion,
+    bool RequirementsChanged,
+    bool ArchitectureChanged);
 
-/// <summary>Отчёт о проверках реализации.</summary>
 public sealed record TestReport(
     bool Passed,
     IReadOnlyList<string> Checks,
+    IReadOnlyList<string> Findings,
     IReadOnlyList<string> Failures,
-    IReadOnlyList<string> Recommendations);
+    IReadOnlyList<string> Recommendations,
+    bool RequiresEscalation);
 
-/// <summary>Результат проверки безопасности.</summary>
 public sealed record SecurityReview(
     bool Passed,
     IReadOnlyList<string> Findings,
     IReadOnlyList<string> Risks,
-    IReadOnlyList<string> RequiredActions);
+    IReadOnlyList<string> RequiredActions,
+    bool RequiresEscalation);
 
-/// <summary>Итог ревью всего workflow.</summary>
 public sealed record ReviewResult(
     bool Approved,
     string Summary,
     IReadOnlyList<string> BlockingIssues,
     IReadOnlyList<string> NextSteps);
+
+public sealed record ManagerDecision(
+    string NextAgent,
+    string Reason,
+    int Cycle,
+    bool RequirementsAccepted,
+    bool ArchitectureAccepted,
+    ArchitectureQuestion? ArchitectureQuestion);
+
+public sealed record DeveloperEscalationInput(
+    ArchitectureDecision Architecture,
+    ImplementationResult Implementation,
+    int Cycle,
+    string Stage = "Developer");
+
+public sealed record TestEscalationInput(
+    ImplementationResult Implementation,
+    TestReport Tests,
+    int Cycle,
+    string Stage = "Tester");
+
+public sealed record SecurityEscalationInput(
+    TestReport Tests,
+    SecurityReview Security,
+    int Cycle,
+    string Stage = "Security");

@@ -21,7 +21,6 @@ public sealed class AgentClientApplication
         var metadata = WorkflowRunMetadata.Create(options.WorkflowFeature);
         using var runScope = telemetry.StartRun(metadata);
         var agents = AgentFactory.Create(chatClient, mcp.Tools.ToList());
-        var workflow = WorkspaceWorkflow.Create(agents, metadata, telemetry.WorkflowActivitySource);
         var question = CreateQuestion(args);
 
         Console.WriteLine(
@@ -30,14 +29,13 @@ public sealed class AgentClientApplication
         Console.WriteLine($"Задача: {question.Question}");
         Console.WriteLine("Цепочка: Manager -> Architect -> Developer -> Tester -> Security -> Reviewer -> Manager");
 
-        await using var run = await InProcessExecution.RunStreamingAsync(workflow, question);
-        await foreach (var workflowEvent in run.WatchStreamAsync())
-        {
-            var eventName = workflowEvent.GetType().Name;
-            var executorId = workflowEvent.GetType().GetProperty("ExecutorId")?.GetValue(workflowEvent);
-            var result = workflowEvent.GetType().GetProperty("Result")?.GetValue(workflowEvent);
-            Console.WriteLine($"[WORKFLOW] {eventName}; executor={executorId ?? "-"}; result={result ?? "-"}");
-        }
+        var workflow = new EscalatingWorkflow(
+            agents,
+            metadata,
+            telemetry.WorkflowActivitySource,
+            options.MaxCycles);
+        var result = await workflow.RunAsync(question);
+        Console.WriteLine($"[WORKFLOW] Завершено: approved={result.Approved}; summary={result.Summary}");
     }
 
     private static ArchitectureQuestion CreateQuestion(string[] args)
