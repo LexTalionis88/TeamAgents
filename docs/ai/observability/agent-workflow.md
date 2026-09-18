@@ -2,16 +2,22 @@
 
 ## Назначение
 
-Актуальная реализация workflow состоит из пяти последовательных агентов и typed-контрактов. Исторический пример маршрутизатора ниже сохранён для сравнения, а текущая схема описана в typed-contracts.md.
+Актуальная реализация workflow состоит из Manager intake, Architect, Developer,
+Tester, Security, Reviewer и Manager final. Между шагами используются
+типизированные контракты; PolicyManager принимает решения только на gate-точках.
 
-`src/AgentClient/Program.cs` содержит минимальный workflow из двух агентов:
+`src/AgentClient/Workflow/EscalatingWorkflow.cs` содержит workflow:
 
 ```text
-запрос -> маршрутизатор -> агент-аналитик
-                    \-> агент-ревьюер
+запрос -> Manager -> Architect -> Developer -> Tester -> Security -> Reviewer -> Manager
+                         ^              |          |           |
+                         +-- escalation+----------+-----------+
 ```
 
-Маршрутизатор выбирает ветку детерминированно. Если запрос содержит `проверь` или `ревью`, запускается ревьюер; иначе запускается аналитик. Оба агента используют локальную модель Ollama и обнаруженные через MCP tools.
+При findings или неоднозначности PolicyManager может вернуть workflow к
+Architect или Developer. Допустимые переходы и лимит циклов проверяются кодом,
+а не только инструкциями модели. Все агенты используют локальную модель Ollama;
+MCP tools discovery выполняется до запуска workflow.
 
 ## Что наблюдать в консоли
 
@@ -38,7 +44,11 @@ dotnet run --project src/AgentClient -- "Проверь статус MCP-сер�
 dotnet run --project src/AgentClient -- "Проанализируй текущий запрос"
 ```
 
-Первый запрос должен выбрать `агент-ревьюер` и вызвать `get_workspace_status`. Второй должен выбрать `агент-аналитик`. Имя модели можно изменить через `OLLAMA_MODEL`, endpoint — через `OLLAMA_HOST`.
+Первый запрос проходит полный typed workflow и должен показать discovery MCP и
+шаги Manager -> Architect -> Developer -> Tester -> Security -> Reviewer ->
+Manager. Если модель вернула findings или неоднозначность, возможен возврат к
+Architect/Developer до лимита циклов. Имя модели можно изменить через
+`OLLAMA_MODEL`, endpoint — через `OLLAMA_HOST`.
 
 ## Важные ограничения
 

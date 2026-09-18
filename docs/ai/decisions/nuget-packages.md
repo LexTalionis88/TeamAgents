@@ -61,6 +61,19 @@ calling выбранной модели.
 - ASP.NET Core не добавлялся: текущий MCP transport — stdio, HTTP host не нужен.
 - Entity Framework и ORM не добавлялись: хранилище данных отсутствует.
 
+## Tests (`tests/Workspace.Tests`)
+
+### `NUnit` и `NUnit3TestAdapter`
+
+Используются для unit, integration и explicit E2E тестов в одном test project.
+Integration-тесты запускают реальный MCP stdio process; E2E-тест не выполняется
+по умолчанию и требует Ollama, поэтому обычная проверка solution не зависит от
+внешнего inference-сервиса.
+
+### `Microsoft.NET.Test.Sdk`
+
+Предоставляет test host для запуска NUnit через `dotnet test`.
+
 ## Правила обновления
 
 Перед обновлением пакета:

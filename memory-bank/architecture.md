@@ -33,13 +33,20 @@ McpServer не должен зависеть от AgentClient. MCP-сервер 
 
 ## Entry points
 
-Текущий исполняемый маршрут workflow: Manager -> Architect -> Developer -> Tester -> Security -> Reviewer -> Manager. Разбор реального запуска: docs/ai/observability/trace-review.md.
+Текущий исполняемый маршрут workflow: Manager intake -> Architect -> Developer
+-> Tester -> Security -> Reviewer -> Manager final. Manager policy принимает
+решения об эскалации после Developer, Tester и Security. Реализация маршрута и
+проверок находится в `src/AgentClient/Workflow/EscalatingWorkflow.cs`; не следует
+выводить маршрут только из prompt-ов агентов.
 
 Correlation и metadata запуска описаны в docs/ai/observability/correlation.md. Корневой workflow span и typed executor spans получают task.id, correlation.id, feature, agent.name, step и iteration.
 
 AgentClient исполняет typed workflow: `ArchitectureQuestion -> ArchitectureDecision -> ImplementationResult -> TestReport -> SecurityReview -> ReviewResult`. Описание контрактов: [`docs/ai/observability/typed-contracts.md`](../docs/ai/observability/typed-contracts.md).
 
-Multi-agent workflow и его observability описаны в [`docs/ai/observability/agent-workflow.md`](../docs/ai/observability/agent-workflow.md). Граф в `src/AgentClient/Program.cs` содержит маршрутизатор и две условные ветки: `агент-аналитик` и `агент-ревьюер`.
+Multi-agent workflow и его observability описаны в
+[`docs/ai/observability/agent-workflow.md`](../docs/ai/observability/agent-workflow.md).
+Граф не строится в `Program.cs`: orchestration выполняется классом
+`EscalatingWorkflow`, а `Program.cs` только вызывает application entry point.
 
 Основные entry points — `src/McpServer/Program.cs` и
 `src/AgentClient/Program.cs`. Сервер запускается командой `dotnet run` и общается
@@ -70,7 +77,7 @@ AgentClient -> запускает McpServer -> initialize/list tools -> Agent Fr
 | Тип изменения | Сначала исследовать |
 |---|---|
 | MCP-инструмент или серверный контракт | `src/McpServer/Program.cs` |
-| Agent Framework, prompt или model provider | `src/AgentClient/Program.cs` |
+| Agent Framework, prompt или model provider | `src/AgentClient/Agents/AgentFactory.cs`, `src/AgentClient/Application/AgentClientApplication.cs` |
 | MCP process transport | оба `Program.cs`, затем `README.md` |
 | Сборка, запуск или конфигурация | `*.csproj`, `global.json`, `README.md` |
 | Инвариант предметной области | `docs/ai/glossary-and-invariants.md` |
