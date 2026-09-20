@@ -4,6 +4,9 @@
 
 - Developer не может менять требования или архитектуру молча. Если изменение необходимо или вход неоднозначен, он должен вернуть NeedsClarification=true и ArchitectureQuestion.
 - Tester возвращает findings и failures. При RequiresEscalation=true Manager решает, нужен ли повторный Developer.
+- Reviewer получает implementation, TestReport и SecurityReview. При blocking
+  finding Manager передаёт Developer `DeveloperReviewerFixRequest`; после
+  исправления workflow повторяет Tester и Reviewer до лимита итераций.
 - Security получает текущий `ArchitectureDecision` и `TestReport`, возвращает
   findings, risks и required actions. При `ArchitectureChallenged=true` и
   `RequiresEscalation=true` Manager может вернуть finding Architect; Architect

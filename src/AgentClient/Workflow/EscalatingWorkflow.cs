@@ -19,22 +19,31 @@ public sealed class EscalatingWorkflow(
         architecture = await EnsureValidArchitectureAsync(architecture, 1);
 
         TestReport? pendingTesterReport = null;
+        ReviewResult? pendingReviewerReport = null;
         ImplementationResult? previousImplementation = null;
         for (var cycle = 1; cycle <= maxCycles; cycle++)
         {
-            object implementationInput = pendingTesterReport is null
-                ? architecture
-                : new DeveloperTesterFixRequest(
+            object implementationInput = pendingReviewerReport is not null
+                ? new DeveloperReviewerFixRequest(
                     architecture,
                     previousImplementation ?? throw new InvalidOperationException(
-                        "Tester feedback cannot be applied without the previous ImplementationResult."),
-                    pendingTesterReport,
-                    cycle);
+                        "Reviewer feedback cannot be applied without the previous ImplementationResult."),
+                    pendingReviewerReport,
+                    cycle)
+                : pendingTesterReport is null
+                    ? architecture
+                    : new DeveloperTesterFixRequest(
+                        architecture,
+                        previousImplementation ?? throw new InvalidOperationException(
+                            "Tester feedback cannot be applied without the previous ImplementationResult."),
+                        pendingTesterReport,
+                        cycle);
             var implementation = await RunAsync<ImplementationResult>(
                 agents.Developer, implementationInput, "Developer", "implementation", cycle);
             implementation = await EnsureValidImplementationAsync(architecture, implementation, cycle);
             previousImplementation = implementation;
             pendingTesterReport = null;
+            pendingReviewerReport = null;
 
             var developerDecision = await DecideAsync(
                 new DeveloperEscalationInput(architecture, implementation, cycle), cycle);
@@ -113,7 +122,23 @@ public sealed class EscalatingWorkflow(
             EnsureOneOf(securityDecision, "Security", "Architect", "Developer", "Reviewer");
             EnsureRoute(securityDecision, "Reviewer", "Security");
             var review = await RunAsync<ReviewResult>(
-                agents.Reviewer, security, "Reviewer", "review", cycle);
+                agents.Reviewer,
+                new ReviewerInput(architecture, implementation, tests, security, cycle),
+                "Reviewer", "review", cycle);
+            var reviewInput = new ReviewerInput(architecture, implementation, tests, security, cycle);
+            var reviewDecision = await DecideAsync(
+                new ReviewEscalationInput(reviewInput, review, cycle), cycle);
+            reviewDecision = NormalizeReviewDecision(reviewDecision, review, cycle);
+            if (reviewDecision.NextAgent.Equals("Developer", StringComparison.OrdinalIgnoreCase))
+            {
+                EnsureCycleAvailable(cycle, "Reviewer вернул blocking findings для повторного Developer");
+                pendingReviewerReport = review;
+                TraceTransition("Reviewer", "Developer", cycle, reviewDecision.Reason);
+                continue;
+            }
+
+            EnsureRoute(reviewDecision, "Manager", "Reviewer");
+            TraceTransition("Reviewer", "Manager", cycle, reviewDecision.Reason);
             return await RunAsync<ReviewResult>(
                 agents.FinalManager, review, "Manager", "manager-final", cycle);
         }
@@ -167,6 +192,29 @@ public sealed class EscalatingWorkflow(
         {
             NextAgent = expected,
             Reason = $"Typed gate: TestReport does not allow route {decision.NextAgent}; selected {expected}."
+        };
+    }
+
+    private ManagerDecision NormalizeReviewDecision(
+        ManagerDecision decision,
+        ReviewResult review,
+        int cycle)
+    {
+        var blocking = !review.Approved || review.BlockingIssues.Count > 0;
+        var expected = blocking ? "Developer" : "Manager";
+        if (decision.NextAgent.Equals(expected, StringComparison.OrdinalIgnoreCase))
+        {
+            return decision;
+        }
+
+        TraceTransition("Manager", expected, cycle,
+            $"Typed gate corrected invalid Reviewer route {decision.NextAgent}");
+        return decision with
+        {
+            NextAgent = expected,
+            Reason = blocking
+                ? $"Typed gate: Reviewer blocking findings require Developer; route {decision.NextAgent} rejected."
+                : $"Typed gate: Reviewer approved; Manager accepts route {decision.NextAgent}."
         };
     }
 

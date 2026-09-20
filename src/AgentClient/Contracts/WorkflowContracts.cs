@@ -80,6 +80,13 @@ public sealed record DeveloperTesterFixRequest(
     int Cycle,
     string Stage = "ManagerDeveloperFix");
 
+public sealed record DeveloperReviewerFixRequest(
+    ArchitectureDecision Architecture,
+    ImplementationResult PreviousImplementation,
+    ReviewResult ReviewerReport,
+    int Cycle,
+    string Stage = "ManagerDeveloperReviewFix");
+
 public sealed record SecurityReviewInput(
     ArchitectureDecision Architecture,
     TestReport Tests,
@@ -92,6 +99,20 @@ public sealed record SecurityEscalationInput(
     SecurityReview Security,
     int Cycle,
     string Stage = "Security");
+
+public sealed record ReviewerInput(
+    ArchitectureDecision Architecture,
+    ImplementationResult Implementation,
+    TestReport Tests,
+    SecurityReview Security,
+    int Cycle,
+    string Stage = "Reviewer");
+
+public sealed record ReviewEscalationInput(
+    ReviewerInput ReviewInput,
+    ReviewResult Review,
+    int Cycle,
+    string Stage = "Reviewer");
 
 public sealed record ArchitectureRevisionRequest(
     ArchitectureDecision CurrentArchitecture,

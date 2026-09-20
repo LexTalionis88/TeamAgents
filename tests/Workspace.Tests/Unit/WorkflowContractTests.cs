@@ -90,4 +90,28 @@ public sealed class WorkflowContractTests
             Assert.That(request.TesterReport.Findings, Does.Contain("redirect returns 500"));
         });
     }
+
+    [Test]
+    public void DeveloperReviewerFixRequest_CarriesConcurrencyFindingToDeveloper()
+    {
+        var architecture = new ArchitectureDecision("Concurrency example", [], [], [], true, []);
+        var implementation = new ImplementationResult(
+            true, "check then act", ["ConcurrentDictionary"], [], false, null, false, false,
+            ["src/Cache.cs"], ["dotnet test"], true, true, "tests passed",
+            "workspace-revision-2", "sha256:def", ["get_workspace_evidence"]);
+        var review = new ReviewResult(
+            false,
+            "Race remains",
+            ["ContainsKey followed by TryAdd permits duplicate work under concurrency"],
+            ["Use GetOrAdd with an atomic value factory"]);
+
+        var request = new DeveloperReviewerFixRequest(architecture, implementation, review, 2);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(request.Stage, Is.EqualTo("ManagerDeveloperReviewFix"));
+            Assert.That(request.ReviewerReport.BlockingIssues.Single(), Does.Contain("ContainsKey"));
+            Assert.That(request.ReviewerReport.NextSteps.Single(), Does.Contain("GetOrAdd"));
+        });
+    }
 }

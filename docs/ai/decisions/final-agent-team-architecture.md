@@ -80,6 +80,11 @@ ArchitectureQuestion
 `ChangedFiles`, `CommandsRun`, `BuildPassed`, `TestsPassed`, `DiffSummary`,
 `WorkspaceRevision`, `DiffHash` и `ToolCalls`.
 
+`ReviewerInput` объединяет реализацию, тестовый отчёт и security review.
+Конкретный concurrency/performance finding передаётся через
+`DeveloperReviewerFixRequest`; Manager принимает только ReviewerResult без
+blocking issues.
+
 MCP `get_workspace_evidence` возвращает machine-readable revision, SHA-256
 текущего diff и список изменённых файлов. Поэтому текстовый ответ модели не
 считается доказательством изменения workspace сам по себе.
