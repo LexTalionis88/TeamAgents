@@ -13,7 +13,8 @@ Workspace содержит [`workspace.slnx`](../workspace.slnx) с двумя �
   Framework и не зависит от клиента.
 - **`src/AgentClient`** — host Microsoft Agent Framework: запускает MCP-сервер по
   stdio, обнаруживает MCP-инструменты и передаёт их модели через function calling.
-- **`tests/`** — пока отсутствует; добавлять сюда тесты протокола и логики tools.
+- **`tests/Workspace.Tests`** — NUnit unit, MCP stdio integration и explicit
+  Ollama E2E tests.
 
 Предметные Domain/Application слои пока не выделены: текущий пример — технический
 вертикальный срез интеграции.
@@ -35,9 +36,12 @@ McpServer не должен зависеть от AgentClient. MCP-сервер 
 
 Текущий исполняемый маршрут workflow: Manager intake -> Architect -> Developer
 -> Tester -> Security -> Reviewer -> Manager final. Manager policy принимает
-решения об эскалации после Developer, Tester и Security. Реализация маршрута и
-проверок находится в `src/AgentClient/Workflow/EscalatingWorkflow.cs`; не следует
-выводить маршрут только из prompt-ов агентов.
+решения об эскалации после Developer, Tester и Security. Security может явно
+оспорить архитектуру: тогда маршрут становится Security -> Manager policy ->
+Architect -> Developer, а новый `ArchitectureDecision` заменяет прежний.
+Реализация маршрута и проверок находится в
+`src/AgentClient/Workflow/EscalatingWorkflow.cs`; не следует выводить маршрут
+только из prompt-ов агентов.
 
 Correlation и metadata запуска описаны в docs/ai/observability/correlation.md. Корневой workflow span и typed executor spans получают task.id, correlation.id, feature, agent.name, step и iteration.
 

@@ -16,16 +16,29 @@ public sealed class EscalatingWorkflow(
             agents.Manager, initialQuestion, "Manager", "manager-intake", 1);
         var architecture = await RunAsync<ArchitectureDecision>(
             agents.Architect, question, "Architect", "architecture", 1);
-        ValidateArchitecture(architecture);
+        architecture = await EnsureValidArchitectureAsync(architecture, 1);
 
-        for (var cycle = 1; cycle <= maxCycles + 1; cycle++)
+        TestReport? pendingTesterReport = null;
+        ImplementationResult? previousImplementation = null;
+        for (var cycle = 1; cycle <= maxCycles; cycle++)
         {
+            object implementationInput = pendingTesterReport is null
+                ? architecture
+                : new DeveloperTesterFixRequest(
+                    architecture,
+                    previousImplementation ?? throw new InvalidOperationException(
+                        "Tester feedback cannot be applied without the previous ImplementationResult."),
+                    pendingTesterReport,
+                    cycle);
             var implementation = await RunAsync<ImplementationResult>(
-                agents.Developer, architecture, "Developer", "implementation", cycle);
-            ValidateImplementation(implementation);
+                agents.Developer, implementationInput, "Developer", "implementation", cycle);
+            implementation = await EnsureValidImplementationAsync(architecture, implementation, cycle);
+            previousImplementation = implementation;
+            pendingTesterReport = null;
 
             var developerDecision = await DecideAsync(
                 new DeveloperEscalationInput(architecture, implementation, cycle), cycle);
+            developerDecision = NormalizeDeveloperDecision(developerDecision, implementation, cycle);
             if (developerDecision.NextAgent.Equals("Architect", StringComparison.OrdinalIgnoreCase))
             {
                 EnsureCycleAvailable(cycle, "Developer запросил уточнение архитектуры");
@@ -35,7 +48,7 @@ public sealed class EscalatingWorkflow(
                 TraceTransition("Developer", "Architect", cycle, developerDecision.Reason);
                 architecture = await RunAsync<ArchitectureDecision>(
                     agents.Architect, question, "Architect", "architecture", cycle + 1);
-                ValidateArchitecture(architecture);
+                architecture = await EnsureValidArchitectureAsync(architecture, cycle + 1);
                 continue;
             }
 
@@ -48,23 +61,47 @@ public sealed class EscalatingWorkflow(
 
             EnsureOneOf(developerDecision, "Developer", "Architect", "Tester");
             EnsureRoute(developerDecision, "Tester", "Developer");
+            TraceTransition("Developer", "Tester", cycle,
+                "Developer implementation submitted for verification");
             var tests = await RunAsync<TestReport>(
                 agents.Tester, implementation, "Tester", "testing", cycle);
             var testDecision = await DecideAsync(
                 new TestEscalationInput(implementation, tests, cycle), cycle);
+            testDecision = NormalizeTesterDecision(testDecision, tests, cycle);
 
             if (testDecision.NextAgent.Equals("Developer", StringComparison.OrdinalIgnoreCase))
             {
                 EnsureCycleAvailable(cycle, "Tester вернул findings для повторной реализации");
+                pendingTesterReport = tests;
                 TraceTransition("Tester", "Developer", cycle, testDecision.Reason);
                 continue;
             }
 
             EnsureRoute(testDecision, "Security", "Tester");
             var security = await RunAsync<SecurityReview>(
-                agents.SecurityReviewer, tests, "Security", "security", cycle);
+                agents.SecurityReviewer,
+                new SecurityReviewInput(architecture, tests, cycle),
+                "Security", "security", cycle);
             var securityDecision = await DecideAsync(
-                new SecurityEscalationInput(tests, security, cycle), cycle);
+                new SecurityEscalationInput(architecture, tests, security, cycle), cycle);
+
+            if (securityDecision.NextAgent.Equals("Architect", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!security.ArchitectureChallenged)
+                {
+                    throw new InvalidOperationException(
+                        "Manager выбрал Architect после Security без ArchitectureChallenged=true.");
+                }
+
+                EnsureCycleAvailable(cycle, "Security оспорил архитектурное решение");
+                TraceTransition("Security", "Architect", cycle, securityDecision.Reason);
+                architecture = await RunAsync<ArchitectureDecision>(
+                    agents.Architect,
+                    new ArchitectureRevisionRequest(architecture, security, cycle),
+                    "Architect", "architecture", cycle + 1);
+                architecture = await EnsureValidArchitectureAsync(architecture, cycle + 1);
+                continue;
+            }
 
             if (securityDecision.NextAgent.Equals("Developer", StringComparison.OrdinalIgnoreCase))
             {
@@ -73,6 +110,7 @@ public sealed class EscalatingWorkflow(
                 continue;
             }
 
+            EnsureOneOf(securityDecision, "Security", "Architect", "Developer", "Reviewer");
             EnsureRoute(securityDecision, "Reviewer", "Security");
             var review = await RunAsync<ReviewResult>(
                 agents.Reviewer, security, "Reviewer", "review", cycle);
@@ -86,6 +124,110 @@ public sealed class EscalatingWorkflow(
     private async Task<ManagerDecision> DecideAsync(object input, int cycle) =>
         await RunAsync<ManagerDecision>(
             agents.PolicyManager, input, "Manager", "manager-decision", cycle);
+
+    private ManagerDecision NormalizeDeveloperDecision(
+        ManagerDecision decision,
+        ImplementationResult implementation,
+        int cycle)
+    {
+        var expected = implementation.NeedsClarification
+            ? "Architect"
+            : implementation.Implemented
+                ? "Tester"
+                : "Developer";
+
+        if (decision.NextAgent.Equals(expected, StringComparison.OrdinalIgnoreCase))
+        {
+            return decision;
+        }
+
+        TraceTransition("Manager", expected, cycle,
+            $"Typed gate corrected invalid Manager route {decision.NextAgent}");
+        return decision with
+        {
+            NextAgent = expected,
+            Reason = $"Typed gate: {decision.NextAgent} не соответствует состоянию Developer; выбран {expected}."
+        };
+    }
+
+    private ManagerDecision NormalizeTesterDecision(
+        ManagerDecision decision,
+        TestReport tests,
+        int cycle)
+    {
+        var expected = tests.Passed && !tests.RequiresEscalation ? "Security" : "Developer";
+        if (decision.NextAgent.Equals(expected, StringComparison.OrdinalIgnoreCase))
+        {
+            return decision;
+        }
+
+        TraceTransition("Manager", expected, cycle,
+            $"Typed gate corrected invalid Tester route {decision.NextAgent}");
+        return decision with
+        {
+            NextAgent = expected,
+            Reason = $"Typed gate: TestReport does not allow route {decision.NextAgent}; selected {expected}."
+        };
+    }
+
+    private async Task<ImplementationResult> EnsureValidImplementationAsync(
+        ArchitectureDecision architecture,
+        ImplementationResult implementation,
+        int cycle)
+    {
+        if (IsValidImplementation(implementation))
+        {
+            return implementation;
+        }
+
+        EnsureCycleAvailable(cycle, "Developer не применил patch и не вернул доказательства результата");
+        TraceTransition("Developer", "Developer", cycle,
+            "Governance вернул Developer за фактическими workspace changes");
+        var corrected = await RunAsync<ImplementationResult>(
+            agents.Developer,
+            new ImplementationCorrectionRequest(
+                architecture,
+                implementation,
+                "Нужны реальные вызовы ListWorkspaceFiles/ReadWorkspaceFile/ApplyWorkspacePatch и RunDotnetCheck; ChangedFiles должны подтверждаться diff.",
+                cycle),
+            "Developer", "implementation-correction", cycle);
+        ValidateImplementation(corrected);
+        return corrected;
+    }
+
+    private async Task<ArchitectureDecision> EnsureValidArchitectureAsync(
+        ArchitectureDecision architecture,
+        int cycle)
+    {
+        if (architecture.RequirementsAccepted && architecture.ChangedRequirements.Count > 0)
+        {
+            // The Architect cannot approve its own requirement changes. Discard the
+            // unapproved list and keep the accepted decision; a real requirement
+            // change still requires an explicit Manager approval and therefore has
+            // to be represented by RequirementsAccepted=false.
+            TraceTransition("Architect", "Manager", cycle,
+                "Governance discarded unapproved ChangedRequirements");
+            architecture = architecture with { ChangedRequirements = Array.Empty<string>() };
+        }
+
+        if (IsValidArchitecture(architecture))
+        {
+            return architecture;
+        }
+
+        EnsureCycleAvailable(cycle, "Architect вернул решение с изменёнными требованиями без approval");
+        TraceTransition("Architect", "Architect", cycle,
+            "Governance отклонил ArchitectureDecision с изменёнными требованиями");
+        var corrected = await RunAsync<ArchitectureDecision>(
+            agents.Architect,
+            new ArchitectureCorrectionRequest(
+                architecture,
+                "RequirementsAccepted должен быть true, а ChangedRequirements должен быть пустым; не добавляй версии или новые требования.",
+                cycle),
+            "Architect", "architecture-correction", cycle);
+        ValidateArchitecture(corrected);
+        return corrected;
+    }
 
     private async ValueTask<T> RunAsync<T>(
         Microsoft.Agents.AI.AIAgent agent,
@@ -107,7 +249,7 @@ public sealed class EscalatingWorkflow(
 
     private void EnsureCycleAvailable(int cycle, string reason)
     {
-        if (cycle > maxCycles)
+        if (cycle >= maxCycles)
         {
             throw new InvalidOperationException(
                 $"Workflow остановлен: {reason}. Достигнут WORKFLOW_MAX_CYCLES={maxCycles}.");
@@ -141,14 +283,29 @@ public sealed class EscalatingWorkflow(
             throw new InvalidOperationException(
                 "Developer изменил требования или архитектуру без ArchitectureQuestion.");
         }
+
+        if (!implementation.NeedsClarification &&
+            (!implementation.Implemented || implementation.ChangedFiles is null || implementation.ChangedFiles.Count == 0))
+        {
+            throw new InvalidOperationException(
+                "Developer заявил, что уточнение не нужно, но не предоставил фактические ChangedFiles.");
+        }
     }
+
+    private static bool IsValidImplementation(ImplementationResult implementation) =>
+        implementation.NeedsClarification ||
+        (implementation.Implemented && implementation.ChangedFiles is { Count: > 0 } &&
+         !string.IsNullOrWhiteSpace(implementation.DiffSummary));
 
     private static void ValidateArchitecture(ArchitectureDecision architecture)
     {
-        if (!architecture.RequirementsAccepted || architecture.ChangedRequirements.Count > 0)
+        if (!IsValidArchitecture(architecture))
         {
             throw new InvalidOperationException(
                 "Architect изменил или не принял требования без отдельного Manager approval.");
         }
     }
+
+    private static bool IsValidArchitecture(ArchitectureDecision architecture) =>
+        architecture.RequirementsAccepted && architecture.ChangedRequirements.Count == 0;
 }

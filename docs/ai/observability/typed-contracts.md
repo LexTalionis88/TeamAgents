@@ -27,6 +27,17 @@ OpenTelemetry показывает типы в `executor.type` и `message.type`
 | `SecurityReview` | findings, риски и обязательные действия |
 | `ReviewResult` | итоговое решение, блокирующие проблемы и следующие шаги |
 
+Для security gate используются дополнительные контракты:
+
+| Контракт | Роль |
+|---|---|
+| `SecurityReviewInput` | текущая архитектура и результаты тестирования для Security |
+| `SecurityEscalationInput` | архитектура, тесты и SecurityReview для Manager policy |
+| `ArchitectureRevisionRequest` | finding Security и текущая архитектура для Architect |
+
+`SecurityReview.ArchitectureChallenged=true` — единственное typed-условие,
+разрешающее переход Security -> Architect.
+
 ## Structured output
 
 Каждый агент вызывается через `AIAgent.RunAsync<T>`. Framework запрашивает JSON-схему по generic-типу и десериализует результат в `AgentResponse<T>`. Свободный текст не используется как межагентный контракт.

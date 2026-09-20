@@ -30,3 +30,17 @@ dotnet test workspace.slnx
 - E2E: полный `AgentClient` workflow через MCP и Ollama, запуск отдельно:
   `dotnet test workspace.slnx --filter FullyQualifiedName~AgentWorkflowE2ETests`
   после установки `RUN_E2E_TESTS=true`.
+- Для проверки Architect ↔ Security использовать сценарий
+  `AgentClient_ReturnsSecurityFindingToArchitectForSuspiciousTokenLifetime` и
+  убедиться, что trace содержит `transition:Security->Architect`.
+- Для Short URL: `dotnet test workspace.slnx` проверяет application service и
+  HTTP API на InMemory provider; production-like persistence запускается через
+  `docker compose up --build short-url postgres redis`.
+- OpenAI E2E запускается отдельно с `RUN_OPENAI_E2E=true` и
+  `OPENAI_API_KEY`; он намеренно не входит в обязательный offline test suite.
+
+- Developer/Tester loop: после неуспешного `TestReport` Manager передаёт
+  Developer полный `DeveloperTesterFixRequest` с предыдущим
+  `ImplementationResult` и findings Tester. В trace должны появляться
+  `transition:Tester->Developer` и затем `transition:Developer->Tester`;
+  число итераций ограничивается `WORKFLOW_MAX_CYCLES`.

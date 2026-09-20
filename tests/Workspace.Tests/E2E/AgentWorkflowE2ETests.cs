@@ -9,6 +9,33 @@ public sealed class AgentWorkflowE2ETests
     [Explicit("Requires a running Ollama instance and a tool-calling model. Set RUN_E2E_TESTS=true.")]
     public async Task AgentClient_CompletesWorkflowThroughMcp()
     {
+        var output = await RunAgentAsync("Проверь статус MCP-сервера");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(output, Does.Contain("Подключение к MCP-серверу выполнено"));
+            Assert.That(output, Does.Contain("[WORKFLOW] Завершено"));
+            Assert.That(output, Does.Contain("correlation_id="));
+        });
+    }
+
+    [Test]
+    [Explicit("Requires a running Ollama instance and a tool-calling model. Set RUN_E2E_TESTS=true.")]
+    public async Task AgentClient_ReturnsSecurityFindingToArchitectForSuspiciousTokenLifetime()
+    {
+        var output = await RunAgentAsync(
+            "Проверь сомнительную архитектурную схему auth/token lifetime: access token живёт слишком долго, refresh token не ротируется. Security должен оспорить решение и вернуть finding Architect для пересмотра.");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(output, Does.Contain("[WORKFLOW] Завершено"));
+            Assert.That(output, Does.Contain("transition:Security->Architect"),
+                "Security должен вернуть архитектурный finding Architect.");
+        });
+    }
+
+    private static async Task<string> RunAgentAsync(string prompt)
+    {
         if (!string.Equals(
                 Environment.GetEnvironmentVariable("RUN_E2E_TESTS"),
                 "true",
@@ -24,7 +51,10 @@ public sealed class AgentWorkflowE2ETests
             {
                 FileName = "dotnet",
                 WorkingDirectory = repository,
-                Arguments = "run --project src/AgentClient --no-launch-profile -- \"Проверь статус MCP-сервера\"",
+                ArgumentList =
+                {
+                    "run", "--project", "src/AgentClient", "--no-launch-profile", "--", prompt,
+                },
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
@@ -41,12 +71,7 @@ public sealed class AgentWorkflowE2ETests
         var error = await errorTask;
 
         Assert.That(process.ExitCode, Is.EqualTo(0), $"stderr: {error}");
-        Assert.Multiple(() =>
-        {
-            Assert.That(output, Does.Contain("Подключение к MCP-серверу выполнено"));
-            Assert.That(output, Does.Contain("[WORKFLOW] Завершено"));
-            Assert.That(output, Does.Contain("correlation_id="));
-        });
+        return output;
     }
 
     private static string FindRepositoryRoot()

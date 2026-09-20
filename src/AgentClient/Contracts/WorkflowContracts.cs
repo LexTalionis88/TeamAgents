@@ -21,7 +21,12 @@ public sealed record ImplementationResult(
     bool NeedsClarification,
     ArchitectureQuestion? ArchitectureQuestion,
     bool RequirementsChanged,
-    bool ArchitectureChanged);
+    bool ArchitectureChanged,
+    IReadOnlyList<string>? ChangedFiles = null,
+    IReadOnlyList<string>? CommandsRun = null,
+    bool BuildPassed = false,
+    bool TestsPassed = false,
+    string? DiffSummary = null);
 
 public sealed record TestReport(
     bool Passed,
@@ -36,7 +41,8 @@ public sealed record SecurityReview(
     IReadOnlyList<string> Findings,
     IReadOnlyList<string> Risks,
     IReadOnlyList<string> RequiredActions,
-    bool RequiresEscalation);
+    bool RequiresEscalation,
+    bool ArchitectureChallenged);
 
 public sealed record ReviewResult(
     bool Approved,
@@ -64,8 +70,41 @@ public sealed record TestEscalationInput(
     int Cycle,
     string Stage = "Tester");
 
+public sealed record DeveloperTesterFixRequest(
+    ArchitectureDecision Architecture,
+    ImplementationResult PreviousImplementation,
+    TestReport TesterReport,
+    int Cycle,
+    string Stage = "ManagerDeveloperFix");
+
+public sealed record SecurityReviewInput(
+    ArchitectureDecision Architecture,
+    TestReport Tests,
+    int Cycle,
+    string Stage = "Security");
+
 public sealed record SecurityEscalationInput(
+    ArchitectureDecision Architecture,
     TestReport Tests,
     SecurityReview Security,
     int Cycle,
     string Stage = "Security");
+
+public sealed record ArchitectureRevisionRequest(
+    ArchitectureDecision CurrentArchitecture,
+    SecurityReview Security,
+    int Cycle,
+    string Stage = "SecurityArchitectureChallenge");
+
+public sealed record ArchitectureCorrectionRequest(
+    ArchitectureDecision InvalidArchitecture,
+    string Reason,
+    int Cycle,
+    string Stage = "ArchitectureGovernanceCorrection");
+
+public sealed record ImplementationCorrectionRequest(
+    ArchitectureDecision Architecture,
+    ImplementationResult InvalidImplementation,
+    string Reason,
+    int Cycle,
+    string Stage = "ImplementationGovernanceCorrection");
