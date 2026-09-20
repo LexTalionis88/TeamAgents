@@ -52,6 +52,13 @@ Multi-agent workflow и его observability описаны в
 Граф не строится в `Program.cs`: orchestration выполняется классом
 `EscalatingWorkflow`, а `Program.cs` только вызывает application entry point.
 
+Итоговое decision по agent team зафиксировано в
+[`docs/ai/decisions/final-agent-team-architecture.md`](../docs/ai/decisions/final-agent-team-architecture.md).
+Пользовательский вход принадлежит Manager; маршрутизация выполняется
+детерминированным policy-слоем поверх Microsoft Agent Framework, а роли
+Architect, Developer, Tester, Security и Reviewer работают через typed
+contracts и bounded review/fix cycles.
+
 Основные entry points — `src/McpServer/Program.cs` и
 `src/AgentClient/Program.cs`. Сервер запускается командой `dotnet run` и общается
 через stdio; клиент запускается командой `dotnet run --project src/AgentClient`.
