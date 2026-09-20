@@ -44,3 +44,7 @@ dotnet test workspace.slnx
   `ImplementationResult` и findings Tester. В trace должны появляться
   `transition:Tester->Developer` и затем `transition:Developer->Tester`;
   число итераций ограничивается `WORKFLOW_MAX_CYCLES`.
+
+- `ImplementationResult` с `Implemented=true` обязан содержать
+  `ChangedFiles`, `WorkspaceRevision`, `DiffHash` и непустой `ToolCalls`;
+  одного текстового `DiffSummary` недостаточно.

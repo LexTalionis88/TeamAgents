@@ -31,6 +31,7 @@ public sealed class McpServerIntegrationTests
         Assert.That(tools.Keys, Does.Contain("apply_workspace_patch"));
         Assert.That(tools.Keys, Does.Contain("run_dotnet_check"));
         Assert.That(tools.Keys, Does.Contain("get_workspace_diff"));
+        Assert.That(tools.Keys, Does.Contain("get_workspace_evidence"));
 
         var result = await client.CallToolAsync(
             "echo",

@@ -1,5 +1,8 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using ModelContextProtocol.Server;
@@ -93,6 +96,23 @@ public sealed class WorkspaceTools
     [McpServerTool, Description("Возвращает текущий git diff workspace для проверки Developer/Tester/Reviewer.")]
     public Task<string> GetWorkspaceDiff(CancellationToken cancellationToken = default) =>
         RunProcessTextAsync("git", ["diff", "--", "."], cancellationToken);
+
+    [McpServerTool, Description("Возвращает machine-readable доказательства workspace: git revision, SHA-256 текущего diff и список изменённых файлов.")]
+    public async Task<string> GetWorkspaceEvidence(CancellationToken cancellationToken = default)
+    {
+        var revision = (await RunProcessTextAsync("git", ["rev-parse", "HEAD"], cancellationToken)).Trim();
+        var diff = await RunProcessTextAsync("git", ["diff", "--", "."], cancellationToken);
+        var changedFiles = (await RunProcessTextAsync("git", ["diff", "--name-only", "--", "."], cancellationToken))
+            .Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(diff))).ToLowerInvariant();
+
+        return JsonSerializer.Serialize(new
+        {
+            workspaceRevision = revision,
+            diffHash = $"sha256:{hash}",
+            changedFiles,
+        });
+    }
 
     private static string ResolvePath(string relativePath, bool mustExist)
     {

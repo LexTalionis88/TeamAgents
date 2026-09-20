@@ -72,7 +72,8 @@ public sealed class WorkflowContractTests
         var architecture = new ArchitectureDecision("Short URL", [], [], [], true, []);
         var implementation = new ImplementationResult(
             true, "implemented", ["API"], [], false, null, false, false,
-            ["src/Api.cs"], ["dotnet build"], true, false, "build passed");
+            ["src/Api.cs"], ["dotnet build"], true, false, "build passed",
+            "workspace-revision-1", "sha256:abc", ["list_workspace_files", "apply_workspace_patch", "get_workspace_diff"]);
         var report = new TestReport(
             false, ["dotnet test"], ["redirect returns 500"], ["integration failure"],
             ["fix redirect path"], true);
@@ -84,6 +85,8 @@ public sealed class WorkflowContractTests
             Assert.That(request.Stage, Is.EqualTo("ManagerDeveloperFix"));
             Assert.That(request.Cycle, Is.EqualTo(2));
             Assert.That(request.PreviousImplementation, Is.EqualTo(implementation));
+            Assert.That(request.PreviousImplementation.DiffHash, Is.EqualTo("sha256:abc"));
+            Assert.That(request.PreviousImplementation.ToolCalls, Does.Contain("apply_workspace_patch"));
             Assert.That(request.TesterReport.Findings, Does.Contain("redirect returns 500"));
         });
     }

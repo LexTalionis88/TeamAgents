@@ -285,17 +285,23 @@ public sealed class EscalatingWorkflow(
         }
 
         if (!implementation.NeedsClarification &&
-            (!implementation.Implemented || implementation.ChangedFiles is null || implementation.ChangedFiles.Count == 0))
+            (!implementation.Implemented || implementation.ChangedFiles is null || implementation.ChangedFiles.Count == 0 ||
+             string.IsNullOrWhiteSpace(implementation.WorkspaceRevision) ||
+             string.IsNullOrWhiteSpace(implementation.DiffHash) ||
+             implementation.ToolCalls is null || implementation.ToolCalls.Count == 0))
         {
             throw new InvalidOperationException(
-                "Developer заявил, что уточнение не нужно, но не предоставил фактические ChangedFiles.");
+                "Developer заявил, что уточнение не нужно, но не предоставил полный набор доказательств workspace: ChangedFiles, WorkspaceRevision, DiffHash и ToolCalls.");
         }
     }
 
     private static bool IsValidImplementation(ImplementationResult implementation) =>
         implementation.NeedsClarification ||
         (implementation.Implemented && implementation.ChangedFiles is { Count: > 0 } &&
-         !string.IsNullOrWhiteSpace(implementation.DiffSummary));
+         !string.IsNullOrWhiteSpace(implementation.DiffSummary) &&
+         !string.IsNullOrWhiteSpace(implementation.WorkspaceRevision) &&
+         !string.IsNullOrWhiteSpace(implementation.DiffHash) &&
+         implementation.ToolCalls is { Count: > 0 });
 
     private static void ValidateArchitecture(ArchitectureDecision architecture)
     {

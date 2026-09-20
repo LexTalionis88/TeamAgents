@@ -26,7 +26,10 @@ public sealed record ImplementationResult(
     IReadOnlyList<string>? CommandsRun = null,
     bool BuildPassed = false,
     bool TestsPassed = false,
-    string? DiffSummary = null);
+    string? DiffSummary = null,
+    string? WorkspaceRevision = null,
+    string? DiffHash = null,
+    IReadOnlyList<string>? ToolCalls = null);
 
 public sealed record TestReport(
     bool Passed,

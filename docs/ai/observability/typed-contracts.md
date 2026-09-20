@@ -22,7 +22,7 @@ OpenTelemetry показывает типы в `executor.type` и `message.type`
 |---|---|
 | `ArchitectureQuestion` | исходный вопрос, контекст и ограничения |
 | `ArchitectureDecision` | архитектурное решение и затронутые области |
-| `ImplementationResult` | результат реализации и оставшаяся работа |
+| `ImplementationResult` | результат реализации, оставшаяся работа и доказательства workspace (`ChangedFiles`, `WorkspaceRevision`, `DiffHash`, `ToolCalls`) |
 | `TestReport` | проверки, ошибки и рекомендации |
 | `SecurityReview` | findings, риски и обязательные действия |
 | `ReviewResult` | итоговое решение, блокирующие проблемы и следующие шаги |
