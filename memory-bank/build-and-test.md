@@ -21,6 +21,11 @@ dotnet test workspace.slnx
   `dotnet run --project src/AgentClient -- "Проверь статус MCP-сервера"` и
   проверить подключение MCP, typed workflow, correlation IDs и отсутствие
   недопустимого перехода.
+- Gemini E2E: задать `MODEL_PROVIDER=gemini`, `GEMINI_MODEL` и
+  `GEMINI_API_KEY`, затем выполнить запуск AgentClient. В трассировке должны
+  быть `gen_ai.request.model`, `generativelanguage.googleapis.com`, MCP
+  `execute_tool` и workflow transitions. Бесплатный API может вернуть HTTP 429
+  при превышении квоты.
 - Контракты: проверить сериализацию нового record и producer/consumer.
 
 Автоматические тесты:

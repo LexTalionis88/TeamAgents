@@ -6,8 +6,8 @@
 
 - `src/McpServer` — MCP-сервер со stdio-транспортом и tools
   `get_workspace_status`/`echo`.
-- `src/AgentClient` — клиент Microsoft Agent Framework с локальной моделью
-  Ollama. Он запускает MCP-сервер, обнаруживает tools и проводит typed workflow
+- `src/AgentClient` — клиент Microsoft Agent Framework с провайдером Ollama,
+  OpenRouter или Gemini. Он запускает MCP-сервер, обнаруживает tools и проводит typed workflow
   через Manager, Architect, Developer, Tester, Security и Reviewer.
 
 Точка композиции клиента — `src/AgentClient/Application/AgentClientApplication.cs`;
@@ -15,6 +15,6 @@
 typed records — `src/AgentClient/Contracts/WorkflowContracts.cs`.
 
 - `tests/Workspace.Tests` — NUnit-тесты: unit, integration MCP/stdio и explicit
-  E2E с Ollama.
+  E2E с Ollama или Gemini.
 
 При добавлении проектов фиксируй здесь их назначение и основные зависимости.

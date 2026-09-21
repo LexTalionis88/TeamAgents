@@ -24,6 +24,12 @@ set OLLAMA_MODEL=qwen3:1.7b
 dotnet run --project src/AgentClient -- "Проверь статус MCP-сервера"
 ```
 
+Для Gemini задайте `MODEL_PROVIDER=gemini`, `GEMINI_MODEL=gemini-3.8-flash` и
+`GEMINI_API_KEY`, затем запустите ту же команду. Ключ читается только из
+environment variables. Gemini подключён через OpenAI-compatible endpoint;
+provider-side JSON Schema и strict function schemas адаптируются, а typed JSON
+проверяется локально workflow governance.
+
 Клиент использует локальную интеграцию `OllamaSharp`; данные
 обрабатываются локально.
 

@@ -65,9 +65,11 @@ contracts и bounded review/fix cycles.
 
 ## Внешние системы
 
-Внешние системы: локальный Ollama через `OllamaSharp` и
-MCP-протокол между двумя локальными процессами. Облачные AI-провайдеры не
-используются. RabbitMQ пока не подключён; его topology и маршрут сообщений
+Внешние системы: локальный Ollama через `OllamaSharp`, OpenRouter/Gemini через
+OpenAI-compatible `IChatClient` и MCP-протокол между двумя локальными
+процессами. Gemini адаптируется в `Infrastructure/Ai`: strict function schemas
+и provider-side response schema отключаются, а typed JSON валидируется локально.
+RabbitMQ пока не подключён; его topology и маршрут сообщений
 зафиксированы в [`docs/ai/modules/rabbitmq.md`](../docs/ai/modules/rabbitmq.md)
 как незаполненные до появления интеграции.
 

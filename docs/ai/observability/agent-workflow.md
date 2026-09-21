@@ -16,8 +16,9 @@ Tester, Security, Reviewer и Manager final. Между шагами испол�
 
 При findings или неоднозначности PolicyManager может вернуть workflow к
 Architect или Developer. Допустимые переходы и лимит циклов проверяются кодом,
-а не только инструкциями модели. Все агенты используют локальную модель Ollama;
-MCP tools discovery выполняется до запуска workflow.
+а не только инструкциями модели. Все агенты используют провайдер из
+`MODEL_PROVIDER`; MCP tools discovery выполняется до запуска workflow. Для
+Gemini typed JSON десериализуется локально из-за ограничений compatibility layer.
 
 ## Что наблюдать в консоли
 
@@ -28,14 +29,14 @@ MCP tools discovery выполняется до запуска workflow.
 - `executor.process` — вход и результат конкретного executor-а.
 - `edge_group.process` — переход по ребру; `delivered` показывает выбранную ветку, `dropped condition false` — отвергнутую условную ветку.
 - `message.send` — передача сообщения между executor-ами.
-- `invoke_agent` и `chat` — запуск агента и обращение к Ollama.
+- `invoke_agent` и `chat` — запуск агента и обращение к выбранному провайдеру.
 - В `chat` видны `tool_call` и ответ MCP tool; это позволяет установить, какой инструмент был вызван.
 
 Помимо трасс, строки `[WORKFLOW]` показывают `WorkflowStartedEvent`, `ExecutorInvokedEvent`, `ExecutorCompletedEvent`, `WorkflowOutputEvent` и завершение super-step.
 
 ## Воспроизведение
 
-Нужны локально запущенные Ollama и модель:
+Для Ollama нужны локально запущенные Ollama и модель:
 
 ```text
 ollama serve
@@ -49,6 +50,15 @@ dotnet run --project src/AgentClient -- "Проанализируй текущи
 Manager. Если модель вернула findings или неоднозначность, возможен возврат к
 Architect/Developer до лимита циклов. Имя модели можно изменить через
 `OLLAMA_MODEL`, endpoint — через `OLLAMA_HOST`.
+
+Для Gemini:
+
+```text
+set MODEL_PROVIDER=gemini
+set GEMINI_MODEL=gemini-3.8-flash
+set GEMINI_API_KEY=...
+dotnet run --project src/AgentClient -- "Проверь статус MCP-сервера"
+```
 
 ## Важные ограничения
 
