@@ -1,4 +1,5 @@
 using Microsoft.Agents.AI;
+using Microsoft.Extensions.AI;
 
 namespace AgentClient.Agents;
 
@@ -7,7 +8,12 @@ public sealed record AgentSet(
     AIAgent PolicyManager,
     AIAgent Architect,
     AIAgent Developer,
+    AIAgent DeveloperResultFormatter,
     AIAgent Tester,
     AIAgent SecurityReviewer,
     AIAgent Reviewer,
-    AIAgent FinalManager);
+    AIAgent FinalManager,
+    IReadOnlyList<AITool>? Tools = null,
+    AIAgent? DeveloperExplorer = null,
+    AIAgent? DeveloperImplementer = null,
+    AIAgent? DeveloperVerifier = null);

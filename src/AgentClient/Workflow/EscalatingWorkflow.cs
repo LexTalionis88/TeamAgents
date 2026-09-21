@@ -38,8 +38,7 @@ public sealed class EscalatingWorkflow(
                             "Tester feedback cannot be applied without the previous ImplementationResult."),
                         pendingTesterReport,
                         cycle);
-            var implementation = await RunAsync<ImplementationResult>(
-                agents.Developer, implementationInput, "Developer", "implementation", cycle);
+            var implementation = await RunDeveloperAsync(implementationInput, cycle, "implementation");
             implementation = await EnsureValidImplementationAsync(architecture, implementation, cycle);
             previousImplementation = implementation;
             pendingTesterReport = null;
@@ -218,6 +217,56 @@ public sealed class EscalatingWorkflow(
         };
     }
 
+    private async Task<ImplementationResult> RunDeveloperAsync(
+        object input,
+        int cycle,
+        string step)
+    {
+        var exploration = await TypedAgentRunner.RunActionAsync(
+            agents.DeveloperExplorer ?? agents.Developer,
+            input,
+            metadata,
+            "Developer",
+            $"{step}-explore",
+            cycle,
+            "Работай только на этапе Explore. Через MCP прочитай AGENTS.md, нужные документы memory bank и исходные файлы. Не изменяй workspace и верни краткий ExplorationReport с найденными компонентами, инвариантами и файлами.",
+            45);
+
+        var implementation = await TypedAgentRunner.RunActionAsync(
+            agents.DeveloperImplementer ?? agents.Developer,
+            new { Request = input, ExplorationReport = exploration },
+            metadata,
+            "Developer",
+            $"{step}-implement",
+            cycle,
+            "Работай только на этапе Implement. На основании ExplorationReport реально внеси изменения через MCP ApplyWorkspacePatch. После patch не запускай длинное исследование: подготовь workspace к проверке и верни краткий ImplementationActionReport. Не возвращай typed ImplementationResult.",
+            90);
+
+        var verification = await TypedAgentRunner.RunActionAsync(
+            agents.DeveloperVerifier ?? agents.Developer,
+            new { Request = input, ExplorationReport = exploration, ImplementationReport = implementation },
+            metadata,
+            "Developer",
+            $"{step}-verify",
+            cycle,
+            "Работай только на этапе Verify. Проверь фактический diff через MCP, вызови RunDotnetCheck для build и test, затем вызови get_workspace_evidence. Не меняй требования и верни краткий VerificationReport с командами, результатами и evidence.",
+            60);
+
+        var actionTranscript = $"Explore:\n{exploration}\n\nImplement:\n{implementation}\n\nVerify:\n{verification}";
+
+        return await RunAsync<ImplementationResult>(
+            agents.DeveloperResultFormatter,
+            new
+            {
+                Input = input,
+                ActionTranscript = actionTranscript,
+                EvidenceRule = "Копируй ChangedFiles, WorkspaceRevision, DiffHash и ToolCalls только из ActionTranscript. Если фактическое evidence отсутствует, Implemented=false.",
+            },
+            "Developer",
+            $"{step}-result",
+            cycle);
+    }
+
     private async Task<ImplementationResult> EnsureValidImplementationAsync(
         ArchitectureDecision architecture,
         ImplementationResult implementation,
@@ -231,14 +280,14 @@ public sealed class EscalatingWorkflow(
         EnsureCycleAvailable(cycle, "Developer не применил patch и не вернул доказательства результата");
         TraceTransition("Developer", "Developer", cycle,
             "Governance вернул Developer за фактическими workspace changes");
-        var corrected = await RunAsync<ImplementationResult>(
-            agents.Developer,
+        var corrected = await RunDeveloperAsync(
             new ImplementationCorrectionRequest(
                 architecture,
                 implementation,
                 "Нужны реальные вызовы ListWorkspaceFiles/ReadWorkspaceFile/ApplyWorkspacePatch и RunDotnetCheck; ChangedFiles должны подтверждаться diff.",
                 cycle),
-            "Developer", "implementation-correction", cycle);
+            cycle,
+            "implementation-correction");
         ValidateImplementation(corrected);
         return corrected;
     }
