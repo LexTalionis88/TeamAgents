@@ -1,12 +1,12 @@
 using Microsoft.Extensions.AI;
 
-namespace AgentClient.Infrastructure.Ai;
+namespace AgentClient.Infrastructure.Ai.Providers;
 
 /// <summary>
-/// Adapts OpenAI-compatible Gemini requests to the narrower Gemini schema dialect.
-/// Typed responses are handled by <see cref="Workflow.TypedAgentRunner"/>.
+/// Адаптирует запросы Gemini через OpenAI-совместимый интерфейс к более узкой
+/// схеме Gemini. Typed-ответы обрабатываются через TypedAgentRunner.
 /// </summary>
-public sealed class GeminiCompatibleChatClient(IChatClient innerClient) : DelegatingChatClient(innerClient)
+internal sealed class GeminiCompatibleChatClient(IChatClient innerClient) : DelegatingChatClient(innerClient)
 {
     public override Task<ChatResponse> GetResponseAsync(
         IEnumerable<ChatMessage> messages,
