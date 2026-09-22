@@ -14,6 +14,12 @@
   `ArchitectureDecision`. Иначе Manager выбирает повторный Developer или
   Reviewer.
 - Manager policy возвращает ManagerDecision с допустимым следующим участником и причиной.
+- Manager decomposition возвращает `TaskPlan`. WorkItem считается завершённым
+  только после Reviewer; затем workflow явно переходит к следующему WorkItem.
+- Для постановки с несколькими независимыми concern-группами validator требует
+  минимум два или три WorkItem. Один монолитный item не проходит correction-gate;
+  при этом сам workflow не знает предметную область и использует только общие
+  признаки API, данных, инфраструктуры, тестов и документации.
 
 ## Защита маршрута
 
@@ -30,7 +36,14 @@ Orchestrator проверяет допустимые переходы:
 
 Лимит задаётся переменной WORKFLOW_MAX_CYCLES и по умолчанию равен 2. Значение ограничивается диапазоном 0–3. После превышения лимита workflow завершается ошибкой с указанием причины; бесконечный retry невозможен.
 
+Количество WorkItem ограничивается переменной `WORKFLOW_MAX_WORK_ITEMS` и по
+умолчанию равно 6. План не может превышать этот лимит, а один WorkItem не может
+обойти собственные Tester/Security/Reviewer-gates.
+
 Каждый повторный шаг получает увеличенный iteration и trace transition span с from.agent, to.agent и manager.reason.
+
+Таймаут одного typed-вызова агента задаётся `WORKFLOW_AGENT_TIMEOUT_SECONDS` и
+по умолчанию равен 180 секундам; значение ограничивается диапазоном 30–600.
 
 ## Сценарий auth/token lifetime
 

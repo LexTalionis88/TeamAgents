@@ -1,5 +1,24 @@
 # Архитектура и навигация по репозиторию
 
+## Граница оркестрации без предметной области
+
+`EscalatingWorkflow` является переиспользуемым оркестратором, а не реализацией
+acceptance-примера. Он не должен распознавать задачу по имени, предписывать её
+файлы, создавать каркас конкретного проекта или содержать предметный repair-код.
+Такая задача, как Short URL или Like, передаётся только в содержимом
+`ArchitectureQuestion` и реализуется агентами через общий MCP-путь patch/evidence.
+
+Та же граница действует для создания клиентов моделей: `AgentClientApplication`
+не знает OpenAI-совместимые endpoint, учётные данные провайдеров или типы Ollama.
+Эти детали принадлежат реализациям `IChatClientProvider` в
+`src/AgentClient/Infrastructure/Ai/Providers` и выбираются через
+`ChatClientProviderFactory`.
+
+Провайдеры также объявляют технические capability для агентских вызовов:
+безопасный бюджет вывода и необходимость компактного профиля инструкций. Эти
+ограничения остаются в адаптере конкретного провайдера; orchestration-код не
+содержит ветвлений по Groq, Gemini или другому поставщику.
+
 ## Текущее состояние
 
 Workspace содержит [`workspace.slnx`](../workspace.slnx) с двумя консольными
@@ -7,12 +26,33 @@ Workspace содержит [`workspace.slnx`](../workspace.slnx) с двумя �
 
 ## Проекты и слои
 
+## Целевой автономный сценарий
+
+Система должна пройти полноценную production-like задачу без ручных подсказок
+после initial requirements. Базовый acceptance scenario — Short URL или Like
+service на ASP.NET Core с API, PostgreSQL, Redis, Docker и tests.
+
+Пользователь общается только с Manager. Manager выбирает роли и gate-маршрут,
+Developer выполняет реальные изменения через MCP, Tester/Security/Reviewer
+проверяют результат, а PolicyManager разрешает только bounded review/fix cycles.
+Финальный ответ обязан опираться на workspace evidence и trace, а не только на
+текстовое утверждение модели.
+
 Текущая карта:
 
 - **`src/McpServer`** — MCP host и инструменты workspace; не содержит Agent
-  Framework и не зависит от клиента.
+  Framework и не зависит от клиента. `Program.cs` только регистрирует DI,
+  транспорт и классы tools; инфраструктурная логика находится в сервисах.
+  `apply_workspace_patch` принимает обычный Git unified diff и совместимый
+  формат `*** Begin Patch` для добавления новых файлов, а изменения существующих
+  файлов выполняются через unified diff или `replace_workspace_file`.
+  Реализации сервисов, модели инфраструктуры, DI-интерфейсы и классы tools не
+  являются публичным API сборки и имеют уровень `internal`; наружу они доступны
+  только через MCP protocol.
 - **`src/AgentClient`** — host Microsoft Agent Framework: запускает MCP-сервер по
   stdio, обнаруживает MCP-инструменты и передаёт их модели через function calling.
+  Реализации провайдеров, workflow, telemetry, MCP connection и configuration
+  также имеют уровень `internal`; публичными остаются typed workflow-контракты.
 - **`tests/Workspace.Tests`** — NUnit unit, MCP stdio integration и explicit
   Ollama E2E tests.
 
@@ -34,8 +74,8 @@ McpServer не должен зависеть от AgentClient. MCP-сервер 
 
 ## Entry points
 
-Текущий исполняемый маршрут workflow: Manager intake -> Architect -> Developer
--> Tester -> Security -> Reviewer -> Manager final. Manager policy принимает
+Текущий исполняемый маршрут workflow: Manager decomposition -> Architect -> Developer
+-> Tester -> Security -> Reviewer -> следующий WorkItem или Manager final. Manager policy принимает
 решения об эскалации после Developer, Tester и Security. Security может явно
 оспорить архитектуру: тогда маршрут становится Security -> Manager policy ->
 Architect -> Developer, а новый `ArchitectureDecision` заменяет прежний.
@@ -45,7 +85,11 @@ Architect -> Developer, а новый `ArchitectureDecision` заменяет п
 
 Correlation и metadata запуска описаны в docs/ai/observability/correlation.md. Корневой workflow span и typed executor spans получают task.id, correlation.id, feature, agent.name, step и iteration.
 
-AgentClient исполняет typed workflow: `ArchitectureQuestion -> ArchitectureDecision -> ImplementationResult -> TestReport -> SecurityReview -> ReviewResult`. Описание контрактов: [`docs/ai/observability/typed-contracts.md`](../docs/ai/observability/typed-contracts.md).
+AgentClient сначала получает от Manager `TaskPlan` с последовательными
+`WorkItem`, затем исполняет для каждого среза typed workflow:
+`ArchitectureQuestion -> ArchitectureDecision -> ImplementationResult -> TestReport -> SecurityReview -> ReviewResult`.
+Только после одобрения текущего среза workflow передаёт Developer следующий
+`WorkItem`; review/fix-циклы остаются bounded. Описание контрактов: [`docs/ai/observability/typed-contracts.md`](../docs/ai/observability/typed-contracts.md).
 
 Multi-agent workflow и его observability описаны в
 [`docs/ai/observability/agent-workflow.md`](../docs/ai/observability/agent-workflow.md).
@@ -65,10 +109,11 @@ contracts и bounded review/fix cycles.
 
 ## Внешние системы
 
-Внешние системы: локальный Ollama через `OllamaSharp`, OpenRouter/Gemini через
+Внешние системы: локальный Ollama через `OllamaSharp`, OpenRouter/Gemini/Groq через
 OpenAI-compatible `IChatClient` и MCP-протокол между двумя локальными
-процессами. Gemini адаптируется в `Infrastructure/Ai`: strict function schemas
-и provider-side response schema отключаются, а typed JSON валидируется локально.
+процессами. Gemini и Groq используют локальную typed JSON-десериализацию в
+`TypedAgentRunner`, чтобы схема ответа провайдера не конфликтовала с вызовом
+функций; typed JSON валидируется локально.
 RabbitMQ пока не подключён; его topology и маршрут сообщений
 зафиксированы в [`docs/ai/modules/rabbitmq.md`](../docs/ai/modules/rabbitmq.md)
 как незаполненные до появления интеграции.
@@ -89,7 +134,7 @@ AgentClient -> запускает McpServer -> initialize/list tools -> Agent Fr
 
 | Тип изменения | Сначала исследовать |
 |---|---|
-| MCP-инструмент или серверный контракт | `src/McpServer/Program.cs` |
+| MCP-инструмент или серверный контракт | `src/McpServer/Tools/`, `src/McpServer/Abstractions/`, `api.md` |
 | Agent Framework, prompt или model provider | `src/AgentClient/Agents/AgentFactory.cs`, `src/AgentClient/Application/AgentClientApplication.cs` |
 | MCP process transport | оба `Program.cs`, затем `README.md` |
 | Сборка, запуск или конфигурация | `*.csproj`, `global.json`, `README.md` |

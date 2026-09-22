@@ -1,6 +1,11 @@
 # Typed-контракты между агентами
 
-## Цепочка
+## Планирование и цепочка
+
+Перед архитектурным решением Manager возвращает `TaskPlan`. План содержит от
+одного до шести `WorkItem`; каждый item имеет цель, критерии приёмки и ссылки
+только на предыдущие зависимости. Developer получает один текущий item, а
+следующий item передаётся только после прохождения Tester, Security и Reviewer.
 
 Текущий workflow в `src/AgentClient/Workflow/EscalatingWorkflow.cs` передаёт данные между агентами только через типизированные records:
 
@@ -20,6 +25,8 @@ OpenTelemetry показывает типы в `executor.type` и `message.type`
 
 | Контракт | Роль |
 |---|---|
+| `TaskPlan` | план небольших WorkItem, подготовленный Manager |
+| `WorkItem` | цель, критерии приёмки и зависимости одного среза |
 | `ArchitectureQuestion` | исходный вопрос, контекст и ограничения |
 | `ArchitectureDecision` | архитектурное решение и затронутые области |
 | `ImplementationResult` | результат реализации, оставшаяся работа и доказательства workspace (`ChangedFiles`, `WorkspaceRevision`, `DiffHash`, `ToolCalls`) |

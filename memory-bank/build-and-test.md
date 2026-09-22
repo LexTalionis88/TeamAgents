@@ -8,6 +8,16 @@ dotnet build workspace.slnx
 dotnet test workspace.slnx
 ```
 
+При диагностике удалённого провайдера в OpenTelemetry следует проверить span
+конкретного typed/action-вызова: `agent.request.input_chars`,
+`agent.response.output_chars`, `agent.request.timeout_seconds`,
+`agent.request.elapsed_ms` и `agent.request.succeeded`. При ошибке дополнительно
+фиксируются `error.type`, `error.message` и статус span; при локальном исправлении
+формата typed JSON — `agent.response.repair_attempted` и
+`agent.response.initial_parse_error`. Для Groq capability адаптера ограничивают
+размер ответа и включают компактные инструкции, поэтому результаты нужно
+сравнивать с фактической квотой модели.
+
 Тестовый проект `tests/Workspace.Tests` использует NUnit. E2E-тест помечен
 `Explicit`, потому что требует запущенный Ollama и модель с tool calling.
 
@@ -15,8 +25,8 @@ dotnet test workspace.slnx
 
 - Всегда: `dotnet restore workspace.slnx` и `dotnet build workspace.slnx`.
 - MCP tool/transport: запустить `dotnet run --project src/McpServer`; stdout
-  должен оставаться MCP-потоком, а discovery должен вернуть tools
-  `get_workspace_status` и `echo`.
+  должен оставаться MCP-потоком, а discovery должен вернуть инструменты статуса,
+  файлов, patch, .NET-проверок и evidence.
 - AgentClient/workflow: при доступном Ollama выполнить
   `dotnet run --project src/AgentClient -- "Проверь статус MCP-сервера"` и
   проверить подключение MCP, typed workflow, correlation IDs и отсутствие
@@ -26,7 +36,16 @@ dotnet test workspace.slnx
   быть `gen_ai.request.model`, `generativelanguage.googleapis.com`, MCP
   `execute_tool` и workflow transitions. Бесплатный API может вернуть HTTP 429
   при превышении квоты.
+- Groq E2E: задать `MODEL_PROVIDER=groq`, `GROQ_MODEL` и `GROQ_API_KEY`, затем
+  выполнить тот же запуск AgentClient и проверить MCP tool calls и workflow
+  transitions в OpenTelemetry. Для Groq typed JSON десериализуется локально:
+  `response_format` не должен отправляться вместе с MCP tools.
 - Контракты: проверить сериализацию нового record и producer/consumer.
+- Декомпозиция: проверить сериализацию `TaskPlan`/`WorkItem`, clamp
+  `WORKFLOW_MAX_WORK_ITEMS`, отклонение монолитного плана для multi-concern
+  задачи и переход Reviewer -> следующий WorkItem.
+- Таймауты: проверить clamp `WORKFLOW_AGENT_TIMEOUT_SECONDS`, чтобы медленный
+  provider не обрывал typed-вызов раньше установленного лимита.
 
 Автоматические тесты:
 
@@ -38,9 +57,6 @@ dotnet test workspace.slnx
 - Для проверки Architect ↔ Security использовать сценарий
   `AgentClient_ReturnsSecurityFindingToArchitectForSuspiciousTokenLifetime` и
   убедиться, что trace содержит `transition:Security->Architect`.
-- Для Short URL: `dotnet test workspace.slnx` проверяет application service и
-  HTTP API на InMemory provider; production-like persistence запускается через
-  `docker compose up --build short-url postgres redis`.
 - OpenAI E2E запускается отдельно с `RUN_OPENAI_E2E=true` и
   `OPENAI_API_KEY`; он намеренно не входит в обязательный offline test suite.
 

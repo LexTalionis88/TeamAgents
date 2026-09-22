@@ -1,6 +1,28 @@
 # Итоговая архитектура .NET agent team
 
+## Архитектурная граница acceptance-примера
+
+Short URL и Like являются примерами для проверки команды. Они не встраиваются
+в `EscalatingWorkflow` или prompt-ы агентов как шаблоны реализации. Workflow
+применяет один общий протокол MCP patch, build/test и workspace evidence к любым
+требованиям пользователя; конкретные файлы и реализацию выбирают Developer-агенты.
+
+Провайдеры моделей также являются адаптерами, а не логикой application-слоя.
+Groq, Gemini, OpenRouter и Ollama реализуют `IChatClientProvider` в каталоге
+`Infrastructure/Ai/Providers`; приложение выбирает провайдер через
+`ChatClientProviderFactory` и не зависит от SDK конкретного провайдера.
+
 ## Решение
+
+### Целевой acceptance scenario
+
+Архитектура предназначена для автономного выполнения полноценной .NET-задачи
+после одной постановки требований: например, Short URL или Like service на
+ASP.NET Core с API, PostgreSQL, Redis, Docker и тестами. Пользователь не даёт
+агентам промежуточных указаний. Manager самостоятельно выбирает маршрут и роли,
+Developer меняет workspace через MCP, Tester/Security/Reviewer выполняют
+проверки и bounded review/fix cycles, а итог подтверждается workspace evidence,
+diff и trace.
 
 Пользователь взаимодействует только с логической ролью `Manager`. Manager
 принимает задачу и запускает ограниченный typed workflow. Специализированные

@@ -3,9 +3,12 @@
 Минимальный пример из двух приложений:
 
 - `src/McpServer` — MCP Server на официальном C# SDK. Работает через stdio и
-  предоставляет инструменты `GetWorkspaceStatus` и `Echo`.
+  предоставляет инструменты статуса, чтения и изменения workspace, запуска
+  .NET-проверок и сбора evidence.
 - `src/AgentClient` — консольный клиент на Microsoft Agent Framework. Он запускает
-  MCP Server, подключает найденные MCP tools к агенту и отправляет запрос модели.
+  MCP Server, подключает найденные MCP tools к агентам и проводит workflow:
+  Manager сначала формирует `TaskPlan` из небольших `WorkItem`, затем каждый
+  срез проходит Architect, Developer, Tester, Security и Reviewer.
 
 ## Запуск
 
@@ -26,9 +29,19 @@ dotnet run --project src/AgentClient -- "Проверь статус MCP-сер�
 
 Для Gemini задайте `MODEL_PROVIDER=gemini`, `GEMINI_MODEL=gemini-3.8-flash` и
 `GEMINI_API_KEY`, затем запустите ту же команду. Ключ читается только из
-environment variables. Gemini подключён через OpenAI-compatible endpoint;
-provider-side JSON Schema и strict function schemas адаптируются, а typed JSON
-проверяется локально workflow governance.
+переменных окружения. Gemini подключён через OpenAI-совместимый endpoint;
+схемы JSON и строгие схемы функций адаптируются на стороне провайдера, а typed JSON
+проверяется локальными правилами workflow.
+
+Для Groq задайте `MODEL_PROVIDER=groq`, `GROQ_MODEL=openai/gpt-oss-120b` и
+`GROQ_API_KEY`. Groq подключается через OpenAI-совместимый endpoint
+`https://api.groq.com/openai/v1` и использует стандартный вызов инструментов
+Agent Framework.
+
+Количество review/fix-циклов задаётся `WORKFLOW_MAX_CYCLES` (по умолчанию 2),
+а максимальное число последовательных `WorkItem` —
+`WORKFLOW_MAX_WORK_ITEMS` (по умолчанию 6). Таймаут одного typed-вызова агента
+задаётся `WORKFLOW_AGENT_TIMEOUT_SECONDS` (по умолчанию 180 секунд).
 
 Клиент использует локальную интеграцию `OllamaSharp`; данные
 обрабатываются локально.

@@ -1,22 +1,42 @@
 # Наблюдаемость multi-agent workflow
 
+## Граница задачи
+
+Примеры в этом документе являются acceptance-сценариями, а не логикой workflow.
+`EscalatingWorkflow` принимает произвольные .NET-требования и для каждой задачи
+фиксирует одинаковые общие evidence этапов Explore -> Implement -> Verify ->
+Test -> Security -> Review. В нём не должно быть bootstrap/repair-логики Short
+URL, Like, хранилища, API-маршрутов или другого конкретного проекта.
+
 ## Назначение
 
-Актуальная реализация workflow состоит из Manager intake, Architect, Developer,
-Tester, Security, Reviewer и Manager final. Между шагами используются
+Главный проверяемый результат workflow — автономное выполнение полноценной
+.NET-задачи после однократной постановки требований. В качестве acceptance
+scenario используются Short URL или Like service на ASP.NET Core с API,
+PostgreSQL, Redis, Docker и tests. Пользователь не вмешивается между этапами:
+Manager сам маршрутизирует задачу, Developer реализует её через MCP, а
+Tester/Security/Reviewer запускают review/fix cycles и формируют доказуемый итог.
+
+Актуальная реализация workflow начинается с Manager-планировщика, который
+возвращает `TaskPlan` из небольших `WorkItem`. Затем для каждого среза работают
+Architect, Developer, Tester, Security и Reviewer; после одобрения последнего
+среза Manager final принимает общий результат. Между шагами используются
 типизированные контракты; PolicyManager принимает решения только на gate-точках.
 
 `src/AgentClient/Workflow/EscalatingWorkflow.cs` содержит workflow:
 
 ```text
-запрос -> Manager -> Architect -> Developer -> Tester -> Security -> Reviewer -> Manager
-                         ^              |          |           |
-                         +-- escalation+----------+-----------+
+запрос -> Manager(TaskPlan) -> Architect -> Developer(WorkItem) -> Tester
+                                      -> Security -> Reviewer -> следующий WorkItem
+                                      ^                 |
+                                      +-- bounded fix/escalation
 ```
 
 При findings или неоднозначности PolicyManager может вернуть workflow к
-Architect или Developer. Допустимые переходы и лимит циклов проверяются кодом,
-а не только инструкциями модели. Все агенты используют провайдер из
+Architect или Developer. После одобрения одного WorkItem workflow не смешивает
+его с остальными, а передаёт следующий срез отдельным Execute-этапом.
+Допустимые переходы и лимит циклов проверяются кодом, а не только инструкциями модели.
+Все агенты используют провайдер из
 `MODEL_PROVIDER`; MCP tools discovery выполняется до запуска workflow. Для
 Gemini typed JSON десериализуется локально из-за ограничений compatibility layer.
 
@@ -33,6 +53,13 @@ Gemini typed JSON десериализуется локально из-за ог
 - В `chat` видны `tool_call` и ответ MCP tool; это позволяет установить, какой инструмент был вызван.
 
 Помимо трасс, строки `[WORKFLOW]` показывают `WorkflowStartedEvent`, `ExecutorInvokedEvent`, `ExecutorCompletedEvent`, `WorkflowOutputEvent` и завершение super-step.
+
+Каждый typed/action-вызов агента дополнительно создаёт дочерний span
+`agent.request` с именем агента, шагом, номером итерации, размером входа,
+тайм-аутом, длительностью и размером ответа. При ошибке span получает статус
+ошибки и тип исключения; если typed JSON пришлось исправлять локально,
+фиксируются соответствующие признаки повторной попытки. В консольном логе
+ошибка workflow также содержит `task_id`, `correlation_id` и имя провайдера.
 
 ## Воспроизведение
 
@@ -57,6 +84,15 @@ Architect/Developer до лимита циклов. Имя модели можн
 set MODEL_PROVIDER=gemini
 set GEMINI_MODEL=gemini-3.8-flash
 set GEMINI_API_KEY=...
+dotnet run --project src/AgentClient -- "Проверь статус MCP-сервера"
+```
+
+Для Groq:
+
+```text
+set MODEL_PROVIDER=groq
+set GROQ_MODEL=openai/gpt-oss-120b
+set GROQ_API_KEY=...
 dotnet run --project src/AgentClient -- "Проверь статус MCP-сервера"
 ```
 

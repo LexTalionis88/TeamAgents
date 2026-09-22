@@ -1,6 +1,10 @@
 # Developer action loop
 
-The action loop uses separate agents with enforced MCP allow-lists: `DeveloperExplorer` is read-only, `DeveloperImplementer` can apply patches, and `DeveloperVerifier` can only inspect and run checks. Their outputs are combined by the tool-free `DeveloperResultFormatter`.
+Цикл действий использует отдельные этапы с ограниченными списками MCP-разрешений:
+`DeveloperExplorer` работает только на чтение, основной `Developer` изменяет
+workspace через MCP, а `DeveloperVerifier` только проверяет состояние и запускает
+проверки. Результаты объединяет `DeveloperResultFormatter`, у которого нет
+инструментов.
 
 Developer workflow разделён на два этапа:
 
