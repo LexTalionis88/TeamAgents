@@ -4,7 +4,7 @@ using ModelContextProtocol.Client;
 
 namespace AgentClient.Infrastructure.Mcp;
 
-public sealed class McpServerConnection : IAsyncDisposable
+internal sealed class McpServerConnection : IAsyncDisposable
 {
     private readonly McpClient _client;
 

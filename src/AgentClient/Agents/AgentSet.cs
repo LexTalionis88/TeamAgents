@@ -3,7 +3,7 @@ using Microsoft.Extensions.AI;
 
 namespace AgentClient.Agents;
 
-public sealed record AgentSet(
+internal sealed record AgentSet(
     AIAgent Manager,
     AIAgent PolicyManager,
     AIAgent Architect,

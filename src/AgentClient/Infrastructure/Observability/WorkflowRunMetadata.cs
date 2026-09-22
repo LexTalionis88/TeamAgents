@@ -2,7 +2,7 @@ using System.Diagnostics;
 
 namespace AgentClient.Infrastructure.Observability;
 
-public sealed record WorkflowRunMetadata(
+internal sealed record WorkflowRunMetadata(
     string TaskId,
     string CorrelationId,
     string Feature)
@@ -29,7 +29,7 @@ public sealed record WorkflowRunMetadata(
     }
 }
 
-public static class WorkflowRunContext
+internal static class WorkflowRunContext
 {
     private static readonly AsyncLocal<WorkflowRunMetadata?> Metadata = new();
     private static readonly AsyncLocal<WorkflowStep?> Step = new();

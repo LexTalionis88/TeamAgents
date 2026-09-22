@@ -1,11 +1,62 @@
 using System.Text.Json;
 using AgentClient;
+using AgentClient.Workflow;
 
 namespace Workspace.Tests.Unit;
 
 [TestFixture]
 public sealed class WorkflowContractTests
 {
+    [Test]
+    public void TaskPlan_RoundTripsWithOrderedDependencies()
+    {
+        var plan = new TaskPlan(
+            "Последовательная реализация",
+            [
+                new WorkItem("foundation", "Основа", "Подготовить основу решения", ["Сборка проходит"], []),
+                new WorkItem("feature", "Функция", "Добавить основной срез", ["Основной сценарий проверен"], ["foundation"]),
+            ],
+            []);
+
+        var json = JsonSerializer.Serialize(plan);
+        var restored = JsonSerializer.Deserialize<TaskPlan>(json);
+
+        Assert.That(restored, Is.Not.Null);
+        Assert.Multiple(() =>
+        {
+            Assert.That(restored!.Items.Select(item => item.Id), Is.EqualTo(new[] { "foundation", "feature" }));
+            Assert.That(restored.Items[1].Dependencies, Does.Contain("foundation"));
+            Assert.That(restored.UnresolvedRequirements, Is.Empty);
+        });
+    }
+
+    [Test]
+    public void TaskPlanValidator_RequiresMultipleSlicesForMultiConcernTask()
+    {
+        var minimum = TaskPlanValidator.GetMinimumWorkItems(
+            "ASP.NET Core API, PostgreSQL, Redis, Docker и integration tests",
+            6);
+
+        var plan = new TaskPlan(
+            "План с одним монолитным срезом",
+            [new WorkItem("all", "Всё сразу", "Реализовать весь сервис", ["Сервис готов"], [])],
+            []);
+
+        Assert.That(minimum, Is.EqualTo(3));
+        Assert.That(TaskPlanValidator.IsValid(plan, 6, minimum), Is.False);
+    }
+
+    [Test]
+    public void TaskPlanValidator_RejectsNullDependencies()
+    {
+        var plan = new TaskPlan(
+            "Некорректный план",
+            [new WorkItem("item", "Срез", "Цель", ["Критерий"], null!)],
+            []);
+
+        Assert.That(TaskPlanValidator.IsValid(plan, 6, 1), Is.False);
+    }
+
     [Test]
     public void ArchitectureQuestion_RoundTripsAsJson()
     {

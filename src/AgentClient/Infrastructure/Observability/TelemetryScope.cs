@@ -5,7 +5,7 @@ using OpenTelemetry.Trace;
 
 namespace AgentClient.Infrastructure.Observability;
 
-public sealed class TelemetryScope : IDisposable
+internal sealed class TelemetryScope : IDisposable
 {
     public const string SourceName = "Workspace.AgentWorkflow";
 
