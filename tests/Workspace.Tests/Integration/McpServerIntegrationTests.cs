@@ -28,6 +28,7 @@ public sealed class McpServerIntegrationTests
         Assert.That(tools.Keys, Does.Contain("echo"));
         Assert.That(tools.Keys, Does.Contain("list_workspace_files"));
         Assert.That(tools.Keys, Does.Contain("read_workspace_file"));
+        Assert.That(tools.Keys, Does.Contain("replace_workspace_file"));
         Assert.That(tools.Keys, Does.Contain("apply_workspace_patch"));
         Assert.That(tools.Keys, Does.Contain("run_dotnet_check"));
         Assert.That(tools.Keys, Does.Contain("get_workspace_diff"));
