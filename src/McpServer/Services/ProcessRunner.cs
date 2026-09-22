@@ -6,6 +6,13 @@ namespace McpServer.Services;
 
 internal sealed class ProcessRunner(IWorkspacePathResolver pathResolver) : IProcessRunner
 {
+    /// <summary>
+    /// Запускает процесс в корне workspace и возвращает код завершения с выводом.
+    /// </summary>
+    /// <param name="fileName">Имя исполняемой команды.</param>
+    /// <param name="arguments">Аргументы процесса.</param>
+    /// <param name="standardInput">Необязательный текст стандартного ввода.</param>
+    /// <param name="cancellationToken">Токен отмены процесса.</param>
     public async Task<ProcessResult> RunAsync(
         string fileName,
         IReadOnlyList<string> arguments,
@@ -44,6 +51,12 @@ internal sealed class ProcessRunner(IWorkspacePathResolver pathResolver) : IProc
         return new ProcessResult(process.ExitCode, (await stdout) + (await stderr));
     }
 
+    /// <summary>
+    /// Запускает процесс и возвращает объединённый текстовый вывод.
+    /// </summary>
+    /// <param name="fileName">Имя исполняемой команды.</param>
+    /// <param name="arguments">Аргументы процесса.</param>
+    /// <param name="cancellationToken">Токен отмены процесса.</param>
     public async Task<string> RunTextAsync(
         string fileName,
         IReadOnlyList<string> arguments,

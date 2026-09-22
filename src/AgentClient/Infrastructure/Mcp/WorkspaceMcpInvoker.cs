@@ -10,6 +10,15 @@ internal sealed class WorkspaceMcpInvoker(
     ActivitySource activitySource,
     WorkflowRunMetadata metadata)
 {
+    /// <summary>
+    /// Вызывает MCP-инструмент и создаёт span с его результатом.
+    /// </summary>
+    /// <param name="toolName">Имя MCP-инструмента.</param>
+    /// <param name="arguments">Аргументы инструмента.</param>
+    /// <param name="agentName">Имя роли, вызвавшей инструмент.</param>
+    /// <param name="step">Имя workflow-шага.</param>
+    /// <param name="iteration">Номер итерации.</param>
+    /// <param name="cancellationToken">Токен отмены вызова.</param>
     public async Task<string> InvokeAsync(
         string toolName,
         IReadOnlyDictionary<string, object?> arguments,
@@ -60,6 +69,14 @@ internal sealed class WorkspaceMcpInvoker(
         return text;
     }
 
+    /// <summary>
+    /// Применяет unified diff через MCP.
+    /// </summary>
+    /// <param name="patch">Patch для изменения workspace.</param>
+    /// <param name="agentName">Имя роли, вызвавшей инструмент.</param>
+    /// <param name="step">Имя workflow-шага.</param>
+    /// <param name="iteration">Номер итерации.</param>
+    /// <param name="cancellationToken">Токен отмены вызова.</param>
     public Task<string> ApplyPatchAsync(
         string patch,
         string agentName,
@@ -74,6 +91,15 @@ internal sealed class WorkspaceMcpInvoker(
             iteration,
             cancellationToken);
 
+    /// <summary>
+    /// Полностью заменяет файл через MCP.
+    /// </summary>
+    /// <param name="relativePath">Относительный путь файла.</param>
+    /// <param name="content">Новое содержимое файла.</param>
+    /// <param name="agentName">Имя роли, вызвавшей инструмент.</param>
+    /// <param name="step">Имя workflow-шага.</param>
+    /// <param name="iteration">Номер итерации.</param>
+    /// <param name="cancellationToken">Токен отмены вызова.</param>
     public Task<string> ReplaceFileAsync(
         string relativePath,
         string content,
@@ -93,6 +119,13 @@ internal sealed class WorkspaceMcpInvoker(
             iteration,
             cancellationToken);
 
+    /// <summary>
+    /// Получает машиночитаемое evidence текущего workspace через MCP.
+    /// </summary>
+    /// <param name="agentName">Имя роли, вызвавшей инструмент.</param>
+    /// <param name="step">Имя workflow-шага.</param>
+    /// <param name="iteration">Номер итерации.</param>
+    /// <param name="cancellationToken">Токен отмены вызова.</param>
     public Task<string> GetEvidenceAsync(
         string agentName,
         string step,

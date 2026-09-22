@@ -5,6 +5,9 @@ namespace Workspace.Tests.Unit;
 [TestFixture]
 public sealed class ChatClientProviderTests
 {
+    /// <summary>
+    /// Проверяет выбор адаптера для каждого поддерживаемого provider.
+    /// </summary>
     [TestCase("groq", typeof(GroqChatClientProvider))]
     [TestCase("gemini", typeof(GeminiChatClientProvider))]
     [TestCase("openrouter", typeof(OpenRouterChatClientProvider))]
@@ -17,6 +20,9 @@ public sealed class ChatClientProviderTests
         Assert.That(provider.Name, Is.EqualTo(name));
     }
 
+    /// <summary>
+    /// Проверяет регистронезависимый выбор provider.
+    /// </summary>
     [Test]
     public void ResolveIsCaseInsensitive()
     {
@@ -25,6 +31,9 @@ public sealed class ChatClientProviderTests
         Assert.That(provider, Is.TypeOf<GroqChatClientProvider>());
     }
 
+    /// <summary>
+    /// Проверяет отклонение неизвестного provider.
+    /// </summary>
     [Test]
     public void ResolveRejectsUnknownProvider()
     {
@@ -34,6 +43,9 @@ public sealed class ChatClientProviderTests
         Assert.That(exception!.Message, Does.Contain("MODEL_PROVIDER='unknown'"));
     }
 
+    /// <summary>
+    /// Проверяет capability Groq для компактных инструкций и бюджета ответа.
+    /// </summary>
     [Test]
     public void GroqProviderDeclaresCompactPromptAndOutputBudget()
     {

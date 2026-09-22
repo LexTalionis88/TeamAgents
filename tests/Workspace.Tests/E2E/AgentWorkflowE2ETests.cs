@@ -5,6 +5,9 @@ namespace Workspace.Tests.E2E;
 [TestFixture]
 public sealed class AgentWorkflowE2ETests
 {
+    /// <summary>
+    /// Проверяет завершение workflow через MCP с локальной моделью.
+    /// </summary>
     [Test]
     [Explicit("Requires a running Ollama instance and a tool-calling model. Set RUN_E2E_TESTS=true.")]
     public async Task AgentClient_CompletesWorkflowThroughMcp()
@@ -19,6 +22,9 @@ public sealed class AgentWorkflowE2ETests
         });
     }
 
+    /// <summary>
+    /// Проверяет возврат security finding к Architect для пересмотра.
+    /// </summary>
     [Test]
     [Explicit("Requires a running Ollama instance and a tool-calling model. Set RUN_E2E_TESTS=true.")]
     public async Task AgentClient_ReturnsSecurityFindingToArchitectForSuspiciousTokenLifetime()

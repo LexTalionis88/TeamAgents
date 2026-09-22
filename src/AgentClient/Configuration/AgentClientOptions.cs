@@ -20,6 +20,9 @@ internal sealed record AgentClientOptions(
     string? McpServerDll,
     string McpServerProject)
 {
+    /// <summary>
+    /// Читает конфигурацию AgentClient из переменных окружения с безопасными ограничениями.
+    /// </summary>
     public static AgentClientOptions FromEnvironment()
     {
         var serverProject = Path.GetFullPath(

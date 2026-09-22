@@ -13,6 +13,10 @@ internal static class ChatClientProviderFactory
             ["ollama"] = new OllamaChatClientProvider(),
         };
 
+    /// <summary>
+    /// Выбирает адаптер по имени провайдера из конфигурации.
+    /// </summary>
+    /// <param name="modelProvider">Имя провайдера модели.</param>
     public static IChatClientProvider Resolve(string modelProvider)
     {
         var normalizedProvider = modelProvider.Trim().ToLowerInvariant();

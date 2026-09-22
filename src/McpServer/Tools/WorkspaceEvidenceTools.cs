@@ -12,6 +12,10 @@ internal sealed class WorkspaceEvidenceTools(
     IGitWorkspaceService gitWorkspaceService,
     IWorkspaceSnapshotService snapshotService)
 {
+    /// <summary>
+    /// Возвращает текущий diff workspace.
+    /// </summary>
+    /// <param name="cancellationToken">Токен отмены получения diff.</param>
     [McpServerTool, Description("Возвращает текущий git diff workspace для проверки Developer, Tester и Reviewer.")]
     public async Task<string> GetWorkspaceDiff(CancellationToken cancellationToken = default)
     {
@@ -19,6 +23,10 @@ internal sealed class WorkspaceEvidenceTools(
         return snapshot.Diff;
     }
 
+    /// <summary>
+    /// Возвращает ревизию, хеш diff и список изменённых файлов workspace.
+    /// </summary>
+    /// <param name="cancellationToken">Токен отмены сбора evidence.</param>
     [McpServerTool, Description("Возвращает машиночитаемые доказательства workspace: git revision, SHA-256 текущего diff и список изменённых файлов.")]
     public async Task<string> GetWorkspaceEvidence(CancellationToken cancellationToken = default)
     {

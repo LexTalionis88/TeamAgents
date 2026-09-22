@@ -19,9 +19,17 @@ internal sealed class GroqChatClientProvider : IChatClientProvider
 
     public bool PreferCompactAgentInstructions => true;
 
+    /// <summary>
+    /// Возвращает описание выбранной модели Groq для контекста задачи.
+    /// </summary>
+    /// <param name="options">Конфигурация AgentClient.</param>
     public string Describe(AgentClientOptions options) =>
         $"модель Groq={options.GroqModel}";
 
+    /// <summary>
+    /// Создаёт Groq-клиент через OpenAI-совместимый endpoint без скрытых повторов.
+    /// </summary>
+    /// <param name="options">Конфигурация endpoint, модели и ключа.</param>
     public IChatClient CreateChatClient(AgentClientOptions options) =>
         OpenAiCompatibleChatClientFactory.Create(
             Name,

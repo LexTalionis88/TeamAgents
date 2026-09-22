@@ -16,6 +16,11 @@ internal sealed class McpServerConnection : IAsyncDisposable
 
     public IReadOnlyList<AITool> Tools { get; }
 
+    /// <summary>
+    /// Запускает MCP-сервер, получает список его инструментов и создаёт соединение.
+    /// </summary>
+    /// <param name="options">Параметры запуска MCP-сервера.</param>
+    /// <param name="cancellationToken">Токен отмены подключения.</param>
     public static async Task<McpServerConnection> ConnectAsync(
         AgentClientOptions options,
         CancellationToken cancellationToken = default)
@@ -44,5 +49,8 @@ internal sealed class McpServerConnection : IAsyncDisposable
         return new McpServerConnection(client, tools);
     }
 
+    /// <summary>
+    /// Освобождает MCP-клиент и закрывает stdio-транспорт.
+    /// </summary>
     public ValueTask DisposeAsync() => _client.DisposeAsync();
 }

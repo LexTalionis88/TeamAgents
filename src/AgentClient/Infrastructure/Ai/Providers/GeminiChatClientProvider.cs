@@ -17,9 +17,17 @@ internal sealed class GeminiChatClientProvider : IChatClientProvider
 
     public bool PreferCompactAgentInstructions => false;
 
+    /// <summary>
+    /// Возвращает описание выбранной модели Gemini для контекста задачи.
+    /// </summary>
+    /// <param name="options">Конфигурация AgentClient.</param>
     public string Describe(AgentClientOptions options) =>
         $"модель Gemini={options.GeminiModel}";
 
+    /// <summary>
+    /// Создаёт Gemini-клиент через OpenAI-совместимый endpoint.
+    /// </summary>
+    /// <param name="options">Конфигурация endpoint, модели и ключа.</param>
     public IChatClient CreateChatClient(AgentClientOptions options)
     {
         var client = OpenAiCompatibleChatClientFactory.Create(

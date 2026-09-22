@@ -10,6 +10,11 @@ namespace AgentClient.Application;
 
 internal sealed class AgentClientApplication
 {
+    /// <summary>
+    /// Запускает MCP-соединение, выбранный provider и общий workflow.
+    /// </summary>
+    /// <param name="args">Аргументы командной строки с исходной задачей.</param>
+    /// <param name="cancellationToken">Токен отмены запуска приложения.</param>
     public async Task RunAsync(string[] args, CancellationToken cancellationToken = default)
     {
         var options = AgentClientOptions.FromEnvironment();

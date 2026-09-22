@@ -8,6 +8,10 @@ namespace McpServer.Tools;
 [McpServerToolType]
 internal sealed class WorkspaceFileTools(IWorkspacePathResolver pathResolver)
 {
+    /// <summary>
+    /// Возвращает список разрешённых исходных файлов workspace.
+    /// </summary>
+    /// <param name="relativeDirectory">Относительный каталог внутри workspace.</param>
     [McpServerTool, Description("Список исходных файлов workspace. Возвращает только относительные пути и исключает bin, obj и .git.")]
     public string ListWorkspaceFiles(
         [Description("Относительный каталог внутри workspace, по умолчанию корень.")] string relativeDirectory = ".")
@@ -21,6 +25,10 @@ internal sealed class WorkspaceFileTools(IWorkspacePathResolver pathResolver)
         return string.Join(Environment.NewLine, files);
     }
 
+    /// <summary>
+    /// Читает текстовый файл workspace после проверки границ и размера.
+    /// </summary>
+    /// <param name="relativePath">Относительный путь файла внутри workspace.</param>
     [McpServerTool, Description("Читает текстовый файл workspace по относительному пути. Используй перед изменением файла.")]
     public string ReadWorkspaceFile(
         [Description("Относительный путь файла внутри workspace.")] string relativePath)
@@ -34,6 +42,12 @@ internal sealed class WorkspaceFileTools(IWorkspacePathResolver pathResolver)
         return File.ReadAllText(path);
     }
 
+    /// <summary>
+    /// Полностью заменяет содержимое текстового файла workspace.
+    /// </summary>
+    /// <param name="relativePath">Относительный путь изменяемого файла.</param>
+    /// <param name="content">Новое содержимое файла.</param>
+    /// <param name="cancellationToken">Токен отмены операции записи.</param>
     [McpServerTool, Description("Заменяет содержимое текстового файла workspace для детерминированной подготовки.")]
     public async Task<string> ReplaceWorkspaceFile(
         [Description("Относительный путь текстового файла внутри workspace.")] string relativePath,

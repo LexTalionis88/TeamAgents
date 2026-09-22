@@ -7,6 +7,9 @@ namespace Workspace.Tests.Unit;
 [TestFixture]
 public sealed class WorkflowContractTests
 {
+    /// <summary>
+    /// Проверяет сериализацию плана с упорядоченными зависимостями.
+    /// </summary>
     [Test]
     public void TaskPlan_RoundTripsWithOrderedDependencies()
     {
@@ -30,6 +33,9 @@ public sealed class WorkflowContractTests
         });
     }
 
+    /// <summary>
+    /// Проверяет требование нескольких срезов для multi-concern задачи.
+    /// </summary>
     [Test]
     public void TaskPlanValidator_RequiresMultipleSlicesForMultiConcernTask()
     {
@@ -46,6 +52,9 @@ public sealed class WorkflowContractTests
         Assert.That(TaskPlanValidator.IsValid(plan, 6, minimum), Is.False);
     }
 
+    /// <summary>
+    /// Проверяет отклонение плана с отсутствующими зависимостями.
+    /// </summary>
     [Test]
     public void TaskPlanValidator_RejectsNullDependencies()
     {
@@ -57,6 +66,9 @@ public sealed class WorkflowContractTests
         Assert.That(TaskPlanValidator.IsValid(plan, 6, 1), Is.False);
     }
 
+    /// <summary>
+    /// Проверяет сериализацию исходного архитектурного вопроса.
+    /// </summary>
     [Test]
     public void ArchitectureQuestion_RoundTripsAsJson()
     {
@@ -77,6 +89,9 @@ public sealed class WorkflowContractTests
         });
     }
 
+    /// <summary>
+    /// Проверяет значение этапа по умолчанию для входа эскалации.
+    /// </summary>
     [Test]
     public void EscalationInput_DefaultsToExpectedStage()
     {
@@ -88,6 +103,9 @@ public sealed class WorkflowContractTests
         Assert.That(input.Stage, Is.EqualTo("Tester"));
     }
 
+    /// <summary>
+    /// Проверяет передачу архитектурного finding от Security к Architect.
+    /// </summary>
     [Test]
     public void SecurityChallenge_CarriesArchitectureFindingToArchitect()
     {
@@ -117,6 +135,9 @@ public sealed class WorkflowContractTests
         });
     }
 
+    /// <summary>
+    /// Проверяет передачу замечаний Tester обратно Developer.
+    /// </summary>
     [Test]
     public void DeveloperTesterFixRequest_CarriesTesterFindingsToDeveloper()
     {
@@ -142,6 +163,9 @@ public sealed class WorkflowContractTests
         });
     }
 
+    /// <summary>
+    /// Проверяет передачу concurrency finding Reviewer обратно Developer.
+    /// </summary>
     [Test]
     public void DeveloperReviewerFixRequest_CarriesConcurrencyFindingToDeveloper()
     {

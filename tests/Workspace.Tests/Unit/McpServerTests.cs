@@ -8,6 +8,9 @@ namespace Workspace.Tests.Unit;
 [TestFixture]
 public sealed class McpServerTests
 {
+    /// <summary>
+    /// Проверяет запрет путей за пределами workspace.
+    /// </summary>
     [Test]
     public void WorkspacePathResolverRejectsPathsOutsideWorkspace()
     {
@@ -24,6 +27,9 @@ public sealed class McpServerTests
         });
     }
 
+    /// <summary>
+    /// Проверяет запрет служебных каталогов git, bin и obj.
+    /// </summary>
     [TestCase(".git/config")]
     [TestCase("bin/app.dll")]
     [TestCase("obj/project.assets.json")]
@@ -34,6 +40,9 @@ public sealed class McpServerTests
         Assert.That(resolver.IsAllowedPath(path), Is.False);
     }
 
+    /// <summary>
+    /// Проверяет разрешение безопасной команды dotnet и отклонение остальных команд.
+    /// </summary>
     [Test]
     public async Task DotnetCheckAllowsOnlyWorkspaceCommands()
     {
@@ -51,6 +60,9 @@ public sealed class McpServerTests
             Throws.TypeOf<ArgumentException>());
     }
 
+    /// <summary>
+    /// Проверяет запись и чтение файла внутри границ workspace.
+    /// </summary>
     [Test]
     public async Task WorkspaceFileToolsWriteAndReadThroughWorkspaceBoundary()
     {
@@ -72,6 +84,9 @@ public sealed class McpServerTests
         }
     }
 
+    /// <summary>
+    /// Проверяет отклонение небезопасного patch до запуска git.
+    /// </summary>
     [Test]
     public void GitWorkspaceServiceRejectsUnsafePatchBeforeRunningGit()
     {
@@ -85,6 +100,9 @@ public sealed class McpServerTests
         Assert.That(runner.CallCount, Is.EqualTo(0));
     }
 
+    /// <summary>
+    /// Проверяет применение Begin/End patch для нового файла.
+    /// </summary>
     [Test]
     public async Task GitWorkspaceServiceAcceptsBeginEndPatchForNewFile()
     {
@@ -132,6 +150,9 @@ public sealed class McpServerTests
 
         public IReadOnlyList<string>? LastArguments { get; private set; }
 
+        /// <summary>
+        /// Записывает параметры запуска процесса и возвращает успешный результат.
+        /// </summary>
         public Task<ProcessResult> RunAsync(
             string fileName,
             IReadOnlyList<string> arguments,
@@ -144,6 +165,9 @@ public sealed class McpServerTests
             return Task.FromResult(new ProcessResult(0, "проверка выполнена"));
         }
 
+        /// <summary>
+        /// Записывает параметры запуска текстового процесса и возвращает его вывод.
+        /// </summary>
         public Task<string> RunTextAsync(
             string fileName,
             IReadOnlyList<string> arguments,

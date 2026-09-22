@@ -17,6 +17,10 @@ internal sealed class EscalatingWorkflow(
     int maxWorkItems,
     int agentTimeoutSeconds)
 {
+    /// <summary>
+    /// Выполняет общий workflow декомпозиции, реализации, проверок и bounded-эскалаций.
+    /// </summary>
+    /// <param name="initialQuestion">Исходные требования пользователя.</param>
     public async Task<ReviewResult> RunAsync(ArchitectureQuestion initialQuestion)
     {
         // Workflow отвечает за маршрутизацию и evidence-gates. Сама задача является

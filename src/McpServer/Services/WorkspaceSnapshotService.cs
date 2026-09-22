@@ -8,6 +8,10 @@ internal sealed class WorkspaceSnapshotService(
     IWorkspacePathResolver pathResolver,
     IProcessRunner processRunner) : IWorkspaceSnapshotService
 {
+    /// <summary>
+    /// Собирает tracked и untracked изменения workspace в единый снимок.
+    /// </summary>
+    /// <param name="cancellationToken">Токен отмены команд git и чтения файлов.</param>
     public async Task<WorkspaceSnapshot> GetSnapshotAsync(CancellationToken cancellationToken)
     {
         var trackedDiff = await processRunner.RunTextAsync(

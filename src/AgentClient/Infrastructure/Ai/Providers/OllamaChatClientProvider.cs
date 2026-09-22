@@ -18,9 +18,17 @@ internal sealed class OllamaChatClientProvider : IChatClientProvider
 
     public bool PreferCompactAgentInstructions => false;
 
+    /// <summary>
+    /// Возвращает описание локальной модели Ollama для контекста задачи.
+    /// </summary>
+    /// <param name="options">Конфигурация AgentClient.</param>
     public string Describe(AgentClientOptions options) =>
         $"локальная модель Ollama={options.OllamaModel}";
 
+    /// <summary>
+    /// Создаёт клиент локального Ollama endpoint.
+    /// </summary>
+    /// <param name="options">Конфигурация endpoint и модели.</param>
     public IChatClient CreateChatClient(AgentClientOptions options) =>
         new OllamaApiClient(new Uri(options.OllamaHost), options.OllamaModel);
 }

@@ -5,6 +5,15 @@ namespace AgentClient.Infrastructure.Ai.Providers;
 
 internal static class OpenAiCompatibleChatClientFactory
 {
+    /// <summary>
+    /// Создаёт IChatClient для OpenAI-совместимого endpoint.
+    /// </summary>
+    /// <param name="providerName">Имя провайдера для сообщений об ошибках.</param>
+    /// <param name="credentialVariable">Имя переменной с API-ключом.</param>
+    /// <param name="apiKey">API-ключ из окружения.</param>
+    /// <param name="endpoint">Адрес OpenAI-совместимого endpoint.</param>
+    /// <param name="model">Имя модели.</param>
+    /// <param name="retryCount">Количество повторов HTTP-клиента.</param>
     public static IChatClient Create(
         string providerName,
         string credentialVariable,

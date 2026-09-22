@@ -21,6 +21,9 @@ internal sealed class TelemetryScope : IDisposable
 
     public ActivitySource WorkflowActivitySource { get; }
 
+    /// <summary>
+    /// Создаёт scope OpenTelemetry для workflow и консольного экспорта трасс.
+    /// </summary>
     public static TelemetryScope Create()
     {
         var provider = Sdk.CreateTracerProviderBuilder()
@@ -47,6 +50,9 @@ internal sealed class TelemetryScope : IDisposable
         return new TelemetryScope(provider, listener);
     }
 
+    /// <summary>
+    /// Останавливает listener, ActivitySource и провайдер трассировки.
+    /// </summary>
     public void Dispose()
     {
         _listener.Dispose();
@@ -54,6 +60,10 @@ internal sealed class TelemetryScope : IDisposable
         _provider.Dispose();
     }
 
+    /// <summary>
+    /// Открывает корневой span одного запуска workflow.
+    /// </summary>
+    /// <param name="metadata">Метаданные запуска.</param>
     public WorkflowRunScope StartRun(WorkflowRunMetadata metadata)
     {
         var context = WorkflowRunContext.Begin(metadata);
@@ -64,6 +74,9 @@ internal sealed class TelemetryScope : IDisposable
 
     public sealed class WorkflowRunScope(IDisposable context, Activity? activity) : IDisposable
     {
+        /// <summary>
+        /// Закрывает корневой span и восстанавливает предыдущий контекст.
+        /// </summary>
         public void Dispose()
         {
             activity?.Stop();

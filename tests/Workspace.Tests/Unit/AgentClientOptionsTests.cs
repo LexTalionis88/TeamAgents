@@ -6,6 +6,9 @@ namespace Workspace.Tests.Unit;
 [NonParallelizable]
 public sealed class AgentClientOptionsTests
 {
+    /// <summary>
+    /// Проверяет ограничение количества workflow-циклов допустимым диапазоном.
+    /// </summary>
     [TestCase("-1", 0)]
     [TestCase("0", 0)]
     [TestCase("2", 2)]
@@ -27,6 +30,9 @@ public sealed class AgentClientOptionsTests
         }
     }
 
+    /// <summary>
+    /// Проверяет безопасные значения конфигурации по умолчанию.
+    /// </summary>
     [Test]
     public void FromEnvironment_UsesSafeDefaults()
     {
@@ -70,6 +76,9 @@ public sealed class AgentClientOptionsTests
         }
     }
 
+    /// <summary>
+    /// Проверяет чтение конфигурации Gemini из окружения.
+    /// </summary>
     [Test]
     public void FromEnvironment_ReadsGeminiConfiguration()
     {
@@ -101,6 +110,9 @@ public sealed class AgentClientOptionsTests
         }
     }
 
+    /// <summary>
+    /// Проверяет чтение конфигурации Groq из окружения.
+    /// </summary>
     [Test]
     public void FromEnvironment_ReadsGroqConfiguration()
     {
@@ -132,6 +144,9 @@ public sealed class AgentClientOptionsTests
         }
     }
 
+    /// <summary>
+    /// Проверяет ограничение количества WorkItem допустимым диапазоном.
+    /// </summary>
     [TestCase("0", 1)]
     [TestCase("3", 3)]
     [TestCase("99", 6)]
@@ -152,6 +167,9 @@ public sealed class AgentClientOptionsTests
         }
     }
 
+    /// <summary>
+    /// Проверяет ограничение тайм-аута агентского вызова допустимым диапазоном.
+    /// </summary>
     [TestCase("1", 30)]
     [TestCase("180", 180)]
     [TestCase("999", 600)]

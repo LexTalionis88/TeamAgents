@@ -9,6 +9,8 @@ internal static class TaskPlanValidator
     /// Определяет минимальное число срезов по числу независимых concern-групп
     /// в исходной постановке, не зная предметную область задачи.
     /// </summary>
+    /// <param name="requirements">Исходные требования пользователя.</param>
+    /// <param name="maximumItems">Верхняя граница числа срезов.</param>
     public static int GetMinimumWorkItems(string requirements, int maximumItems)
     {
         var normalized = requirements.ToLowerInvariant();
@@ -38,6 +40,9 @@ internal static class TaskPlanValidator
     /// <summary>
     /// Проверяет обязательные поля, порядок зависимостей и глубину плана.
     /// </summary>
+    /// <param name="taskPlan">План, возвращённый Manager.</param>
+    /// <param name="maximumItems">Максимально допустимое число срезов.</param>
+    /// <param name="minimumItems">Минимально допустимое число срезов.</param>
     public static bool IsValid(
         TaskPlan? taskPlan,
         int maximumItems,

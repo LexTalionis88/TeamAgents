@@ -17,9 +17,17 @@ internal sealed class OpenRouterChatClientProvider : IChatClientProvider
 
     public bool PreferCompactAgentInstructions => false;
 
+    /// <summary>
+    /// Возвращает описание выбранной модели OpenRouter для контекста задачи.
+    /// </summary>
+    /// <param name="options">Конфигурация AgentClient.</param>
     public string Describe(AgentClientOptions options) =>
         $"модель OpenRouter={options.OpenRouterModel}";
 
+    /// <summary>
+    /// Создаёт OpenRouter-клиент через OpenAI-совместимый endpoint.
+    /// </summary>
+    /// <param name="options">Конфигурация endpoint, модели и ключа.</param>
     public IChatClient CreateChatClient(AgentClientOptions options) =>
         OpenAiCompatibleChatClientFactory.Create(
             Name,

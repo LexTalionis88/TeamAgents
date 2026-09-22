@@ -7,6 +7,11 @@ internal sealed class GitWorkspaceService(
     IWorkspacePathResolver pathResolver,
     IProcessRunner processRunner) : IGitWorkspaceService
 {
+    /// <summary>
+    /// Проверяет и применяет patch к workspace.
+    /// </summary>
+    /// <param name="patch">Patch в разрешённом формате.</param>
+    /// <param name="cancellationToken">Токен отмены операций git и записи файлов.</param>
     public async Task<string> ApplyPatchAsync(
         string patch,
         CancellationToken cancellationToken)
@@ -48,6 +53,10 @@ internal sealed class GitWorkspaceService(
             : $"PATCH_FAILED\n{applied.Output}";
     }
 
+    /// <summary>
+    /// Возвращает текущую ревизию git workspace.
+    /// </summary>
+    /// <param name="cancellationToken">Токен отмены команды git.</param>
     public Task<string> GetRevisionAsync(CancellationToken cancellationToken) =>
         processRunner.RunTextAsync("git", ["rev-parse", "HEAD"], cancellationToken);
 

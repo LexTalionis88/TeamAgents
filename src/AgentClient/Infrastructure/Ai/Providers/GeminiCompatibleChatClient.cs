@@ -8,12 +8,24 @@ namespace AgentClient.Infrastructure.Ai.Providers;
 /// </summary>
 internal sealed class GeminiCompatibleChatClient(IChatClient innerClient) : DelegatingChatClient(innerClient)
 {
+    /// <summary>
+    /// Отправляет запрос Gemini с нормализованными совместимыми параметрами.
+    /// </summary>
+    /// <param name="messages">Сообщения чата.</param>
+    /// <param name="options">Параметры запроса.</param>
+    /// <param name="cancellationToken">Токен отмены запроса.</param>
     public override Task<ChatResponse> GetResponseAsync(
         IEnumerable<ChatMessage> messages,
         ChatOptions? options = null,
         CancellationToken cancellationToken = default) =>
         base.GetResponseAsync(messages, NormalizeOptions(options), cancellationToken);
 
+    /// <summary>
+    /// Запускает потоковый запрос Gemini с нормализованными параметрами.
+    /// </summary>
+    /// <param name="messages">Сообщения чата.</param>
+    /// <param name="options">Параметры запроса.</param>
+    /// <param name="cancellationToken">Токен отмены запроса.</param>
     public override IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
         IEnumerable<ChatMessage> messages,
         ChatOptions? options = null,

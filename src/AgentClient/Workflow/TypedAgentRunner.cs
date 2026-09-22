@@ -17,6 +17,17 @@ internal static class TypedAgentRunner
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
     };
 
+    /// <summary>
+    /// Выполняет action-вызов агента с JSON-входом и телеметрией запроса.
+    /// </summary>
+    /// <param name="agent">Агент, которому передаётся действие.</param>
+    /// <param name="input">Сериализуемый входной контракт.</param>
+    /// <param name="metadata">Метаданные текущего workflow.</param>
+    /// <param name="agentName">Имя роли агента.</param>
+    /// <param name="step">Имя workflow-шага.</param>
+    /// <param name="iteration">Номер итерации.</param>
+    /// <param name="instruction">Инструкция для агента.</param>
+    /// <param name="timeoutSeconds">Тайм-аут вызова в секундах.</param>
     public static async ValueTask<string> RunActionAsync(
         AIAgent agent,
         object input,
@@ -72,6 +83,18 @@ internal static class TypedAgentRunner
         }
     }
 
+    /// <summary>
+    /// Выполняет typed-вызов агента и локально проверяет JSON-контракт при необходимости.
+    /// </summary>
+    /// <typeparam name="T">Тип ожидаемого typed-контракта.</typeparam>
+    /// <param name="agent">Агент, которому передаётся typed-запрос.</param>
+    /// <param name="input">Сериализуемый входной контракт.</param>
+    /// <param name="metadata">Метаданные текущего workflow.</param>
+    /// <param name="agentName">Имя роли агента.</param>
+    /// <param name="step">Имя workflow-шага.</param>
+    /// <param name="iteration">Номер итерации.</param>
+    /// <param name="requiresLocalTypedJson">Нужно ли десериализовать ответ локально.</param>
+    /// <param name="timeoutSeconds">Тайм-аут вызова в секундах.</param>
     public static async ValueTask<T> RunAsync<T>(
         AIAgent agent,
         object input,

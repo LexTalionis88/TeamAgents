@@ -6,6 +6,9 @@ namespace Workspace.Tests.Integration;
 [NonParallelizable]
 public sealed class McpServerIntegrationTests
 {
+    /// <summary>
+    /// Проверяет публикацию MCP-инструментов через stdio-транспорт.
+    /// </summary>
     [Test]
     public async Task Server_ExposesWorkspaceToolsOverStdio()
     {

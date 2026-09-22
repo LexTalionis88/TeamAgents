@@ -7,6 +7,11 @@ namespace McpServer.Tools;
 [McpServerToolType]
 internal sealed class DotnetCheckTools(IProcessRunner processRunner)
 {
+    /// <summary>
+    /// Запускает одну из разрешённых проверок solution.
+    /// </summary>
+    /// <param name="command">Разрешённая команда dotnet с аргументами workspace.slnx.</param>
+    /// <param name="cancellationToken">Токен отмены проверки.</param>
     [McpServerTool, Description("Запускает разрешённую .NET-проверку в workspace: dotnet restore, build или test.")]
     public Task<string> RunDotnetCheck(
         [Description("Одна из команд: dotnet restore, dotnet build, dotnet test; допускаются только аргументы workspace.slnx и --no-restore.")] string command,

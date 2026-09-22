@@ -6,6 +6,13 @@ namespace AgentClient.Agents;
 
 internal static class AgentFactory
 {
+    /// <summary>
+    /// Создаёт набор ролей агента с переданными MCP-инструментами и ограничениями provider.
+    /// </summary>
+    /// <param name="chatClient">Клиент выбранного AI-провайдера.</param>
+    /// <param name="tools">MCP-инструменты, доступные агентам.</param>
+    /// <param name="maxAgentOutputTokens">Безопасный максимум токенов ответа.</param>
+    /// <param name="compactAgentInstructions">Нужно ли использовать сокращённые инструкции.</param>
     public static AgentSet Create(
         IChatClient chatClient,
         IList<AITool> tools,
