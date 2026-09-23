@@ -21,6 +21,7 @@ internal sealed record AgentClientOptions(
     string? CloudflareAccountId,
     string? CloudflareApiToken,
     string WorkflowFeature,
+    string WorkflowOrchestration,
     int MaxCycles,
     int MaxWorkItems,
     int AgentTimeoutSeconds,
@@ -79,6 +80,7 @@ internal sealed record AgentClientOptions(
             Environment.GetEnvironmentVariable("CLOUDFLARE_ACCOUNT_ID"),
             Environment.GetEnvironmentVariable("CLOUDFLARE_API_TOKEN"),
             Environment.GetEnvironmentVariable("WORKFLOW_FEATURE") ?? "workspace-architecture-review",
+            NormalizeOrchestration(Environment.GetEnvironmentVariable("WORKFLOW_ORCHESTRATION")),
             maxCycles,
             maxWorkItems,
             agentTimeoutSeconds,
@@ -87,4 +89,13 @@ internal sealed record AgentClientOptions(
             Environment.GetEnvironmentVariable("MCP_SERVER_DLL"),
             serverProject);
     }
+
+    private static string NormalizeOrchestration(string? value) =>
+        value?.Trim().ToLowerInvariant() switch
+        {
+            null or "" or "legacy" => "legacy",
+            "magentic" or "magnetic" => "magentic",
+            var unsupported => throw new InvalidOperationException(
+                $"WORKFLOW_ORCHESTRATION='{unsupported}' is not supported. Use 'legacy' or 'magentic'."),
+        };
 }

@@ -122,6 +122,19 @@ RabbitMQ пока не подключён; его topology и маршрут с�
 зафиксированы в [`docs/ai/modules/rabbitmq.md`](../docs/ai/modules/rabbitmq.md)
 как незаполненные до появления интеграции.
 
+## Magentic orchestration
+
+Workflow поддерживает два режима, выбираемых через `WORKFLOW_ORCHESTRATION`:
+
+- `legacy` — текущий типизированный `EscalatingWorkflow` с фиксированными gate-переходами;
+- `magentic` — `MagenticWorkflow` на базе `MagenticWorkflowBuilder`, где Agent Framework
+  выбирает следующего специалиста, ведёт progress ledger и выполняет bounded replanning.
+
+Оба режима используют один и тот же MCP boundary, provider adapters и typed финальный
+Reviewer gate. Magentic manager не получает MCP tools; изменять workspace может только
+Developer через MCP. `maxCycles` и `maxWorkItems` преобразуются в ограничение rounds,
+resets и stalls, поэтому динамическая маршрутизация не отменяет bounded workflow.
+
 ## Основные data/control flows
 
 Основной поток:

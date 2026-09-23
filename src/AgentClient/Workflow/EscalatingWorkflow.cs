@@ -17,7 +17,7 @@ internal sealed class EscalatingWorkflow(
     int maxWorkItems,
     int agentTimeoutSeconds,
     CancellationToken workflowCancellationToken,
-    bool readOnly)
+    bool readOnly) : IWorkflowRunner
 {
     /// <summary>
     /// Выполняет общий workflow декомпозиции, реализации, проверок и bounded-эскалаций.

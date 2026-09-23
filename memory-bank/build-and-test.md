@@ -21,6 +21,19 @@ dotnet test workspace.slnx
 Тестовый проект `tests/Workspace.Tests` использует NUnit. E2E-тест помечен
 `Explicit`, потому что требует запущенный Ollama и модель с tool calling.
 
+## Проверки Magentic
+
+Для проверки нового адаптера без внешнего provider:
+
+```text
+dotnet build workspace.slnx
+dotnet test workspace.slnx
+```
+
+Ручной прогон Magentic выполняется с `WORKFLOW_ORCHESTRATION=magentic`. Он требует
+рабочий provider и MCP workspace; explicit E2E не должен включаться в обязательный
+offline suite.
+
 ## Проверки по типу изменения
 
 - Всегда: `dotnet restore workspace.slnx` и `dotnet build workspace.slnx`.

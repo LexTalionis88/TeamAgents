@@ -12,6 +12,11 @@
 
 ## Запуск
 
+По умолчанию используется совместимый `legacy` workflow. Для эксперимента с
+Magentic orchestration задайте `WORKFLOW_ORCHESTRATION=magentic`; допустим также
+алиас `magnetic`. В обоих режимах изменения workspace выполняются только через MCP,
+а итог проверяется typed Reviewer по фактическому diff/evidence.
+
 ```text
 dotnet restore workspace.slnx
 dotnet build workspace.slnx

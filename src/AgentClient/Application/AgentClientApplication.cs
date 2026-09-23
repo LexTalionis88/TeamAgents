@@ -45,18 +45,36 @@ internal sealed class AgentClientApplication
             $"Запуск workflow: task_id={metadata.TaskId}; " +
             $"correlation_id={metadata.CorrelationId}; feature={metadata.Feature}");
         Console.WriteLine($"Задача: {question.Question}");
-        Console.WriteLine("Цепочка: Manager -> Architect -> Developer -> Tester -> Security -> Reviewer -> Manager");
+        Console.WriteLine(
+            options.WorkflowOrchestration == "magentic"
+                ? "Цепочка: MagenticManager -> Architect/Developer/Tester/Security/Reviewer -> typed Reviewer gate"
+                : "Цепочка: Manager -> Architect -> Developer -> Tester -> Security -> Reviewer -> Manager");
 
-        var workflow = new EscalatingWorkflow(
-            agents,
-            metadata,
-            telemetry.WorkflowActivitySource,
-            provider,
-            options.MaxCycles,
-            options.MaxWorkItems,
-            options.AgentTimeoutSeconds,
-            workflowCancellationToken,
-            options.WorkflowReadOnly);
+        Console.WriteLine($"Оркестрация: {options.WorkflowOrchestration}");
+
+        IWorkflowRunner workflow = options.WorkflowOrchestration switch
+        {
+            "magentic" => new MagenticWorkflow(
+                agents,
+                metadata,
+                telemetry.WorkflowActivitySource,
+                provider,
+                options.MaxCycles,
+                options.MaxWorkItems,
+                options.AgentTimeoutSeconds,
+                workflowCancellationToken,
+                options.WorkflowReadOnly),
+            _ => new EscalatingWorkflow(
+                agents,
+                metadata,
+                telemetry.WorkflowActivitySource,
+                provider,
+                options.MaxCycles,
+                options.MaxWorkItems,
+                options.AgentTimeoutSeconds,
+                workflowCancellationToken,
+                options.WorkflowReadOnly),
+        };
         try
         {
             var result = await workflow.RunAsync(question);

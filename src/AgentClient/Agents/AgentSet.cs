@@ -16,4 +16,5 @@ internal sealed record AgentSet(
     IReadOnlyList<AITool>? Tools = null,
     AIAgent? DeveloperExplorer = null,
     AIAgent? DeveloperImplementer = null,
-    AIAgent? DeveloperVerifier = null);
+    AIAgent? DeveloperVerifier = null,
+    AIAgent? MagenticManager = null);

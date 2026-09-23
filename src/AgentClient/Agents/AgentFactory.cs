@@ -73,6 +73,14 @@ internal static class AgentFactory
         return baseAgents with
         {
             Tools = tools.ToArray(),
+            MagenticManager = BuildAgent(
+                "MagenticManager",
+                "You are the Magentic manager for a software workspace. Coordinate the specialist participants " +
+                "to complete the user's task. Plan the work, choose the next participant, track progress, detect " +
+                "stalling, and replan when necessary. Preserve the user's requirements and do not invent facts. " +
+                "Only the Developer may modify the workspace, and conclusions must be based on observed evidence.",
+                Array.Empty<AITool>(),
+                maximumIterations: 1),
             DeveloperExplorer = BuildAgent(
                 "DeveloperExplorer",
                 "Работай только на этапе Explore. На этом этапе не вызывай инструменты. Верни краткий ExplorationReport, сохрани переданную архитектуру и укажи, что Implementer обязан проверить минимальный набор файлов репозитория через MCP перед созданием patch. Не выдумывай файлы и требования.",
@@ -158,6 +166,8 @@ internal static class AgentFactory
 
     private static string GetCompactInstructions(string name) => name switch
     {
+        "MagenticManager" => "You are the Magentic manager. Coordinate participants, preserve requirements, " +
+            "choose the next specialist, track progress, and replan stalled work. Do not call tools or invent evidence.",
         "Manager" => "Ты Manager. Верни только JSON TaskPlan или ManagerDecision по входному контракту. " +
             "Для TaskPlan создай 1–6 последовательных WorkItem с полями id, title, objective, acceptanceCriteria и dependencies. " +
             "Все массивы обязательны и не могут быть null; не добавляй требований. Для multi-concern задачи раздели API, данные, инфраструктуру, тесты и документацию минимум на три среза. " +

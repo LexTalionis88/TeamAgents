@@ -36,7 +36,7 @@ public sealed class AgentClientOptionsTests
     [Test]
     public void FromEnvironment_UsesSafeDefaults()
     {
-        var names = new[] { "MODEL_PROVIDER", "OLLAMA_HOST", "OLLAMA_MODEL", "OPENROUTER_MODEL", "OPENROUTER_BASE_URL", "OPENROUTER_API_KEY", "GEMINI_MODEL", "GEMINI_BASE_URL", "GEMINI_API_KEY", "GROQ_MODEL", "GROQ_BASE_URL", "GROQ_API_KEY", "TUZI_MODEL", "TUZI_BASE_URL", "TUZI_API_KEY", "CLOUDFLARE_MODEL", "CLOUDFLARE_BASE_URL", "CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_API_TOKEN", "WORKFLOW_FEATURE", "WORKFLOW_MAX_CYCLES", "WORKFLOW_MAX_WORK_ITEMS", "WORKFLOW_AGENT_TIMEOUT_SECONDS", "WORKFLOW_TIMEOUT_SECONDS", "WORKFLOW_READ_ONLY" };
+        var names = new[] { "MODEL_PROVIDER", "OLLAMA_HOST", "OLLAMA_MODEL", "OPENROUTER_MODEL", "OPENROUTER_BASE_URL", "OPENROUTER_API_KEY", "GEMINI_MODEL", "GEMINI_BASE_URL", "GEMINI_API_KEY", "GROQ_MODEL", "GROQ_BASE_URL", "GROQ_API_KEY", "TUZI_MODEL", "TUZI_BASE_URL", "TUZI_API_KEY", "CLOUDFLARE_MODEL", "CLOUDFLARE_BASE_URL", "CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_API_TOKEN", "WORKFLOW_FEATURE", "WORKFLOW_ORCHESTRATION", "WORKFLOW_MAX_CYCLES", "WORKFLOW_MAX_WORK_ITEMS", "WORKFLOW_AGENT_TIMEOUT_SECONDS", "WORKFLOW_TIMEOUT_SECONDS", "WORKFLOW_READ_ONLY" };
         var previous = names.ToDictionary(name => name, Environment.GetEnvironmentVariable);
         try
         {
@@ -69,6 +69,7 @@ public sealed class AgentClientOptionsTests
                 Assert.That(options.CloudflareAccountId, Is.Null);
                 Assert.That(options.CloudflareApiToken, Is.Null);
                 Assert.That(options.WorkflowFeature, Is.EqualTo("workspace-architecture-review"));
+                Assert.That(options.WorkflowOrchestration, Is.EqualTo("legacy"));
                 Assert.That(options.MaxCycles, Is.EqualTo(2));
                 Assert.That(options.MaxWorkItems, Is.EqualTo(6));
                 Assert.That(options.AgentTimeoutSeconds, Is.EqualTo(180));
@@ -150,6 +151,44 @@ public sealed class AgentClientOptionsTests
             {
                 Environment.SetEnvironmentVariable(pair.Key, pair.Value);
             }
+        }
+    }
+
+    [TestCase("magentic", "magentic")]
+    [TestCase("magnetic", "magentic")]
+    [TestCase("legacy", "legacy")]
+    public void FromEnvironment_NormalizesWorkflowOrchestration(string value, string expected)
+    {
+        var previous = Environment.GetEnvironmentVariable("WORKFLOW_ORCHESTRATION");
+        try
+        {
+            Environment.SetEnvironmentVariable("WORKFLOW_ORCHESTRATION", value);
+
+            var options = AgentClientOptions.FromEnvironment();
+
+            Assert.That(options.WorkflowOrchestration, Is.EqualTo(expected));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("WORKFLOW_ORCHESTRATION", previous);
+        }
+    }
+
+    [Test]
+    public void FromEnvironment_RejectsUnknownWorkflowOrchestration()
+    {
+        var previous = Environment.GetEnvironmentVariable("WORKFLOW_ORCHESTRATION");
+        try
+        {
+            Environment.SetEnvironmentVariable("WORKFLOW_ORCHESTRATION", "unknown");
+
+            var exception = Assert.Throws<InvalidOperationException>(() => AgentClientOptions.FromEnvironment());
+
+            Assert.That(exception!.Message, Does.Contain("WORKFLOW_ORCHESTRATION='unknown'"));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("WORKFLOW_ORCHESTRATION", previous);
         }
     }
 

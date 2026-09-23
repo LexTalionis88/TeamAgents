@@ -128,6 +128,23 @@ Cloudflare typed JSON разбирается локально, потому чт
 `server.address=api.cloudflare.com`, `gen_ai.request.model`, `execute_tool`,
 workflow transitions и отсутствие токена в логах.
 
+## Magentic режим
+
+Для экспериментального динамического маршрута задайте:
+
+```text
+set WORKFLOW_ORCHESTRATION=magentic
+```
+
+В этом режиме `MagenticManager` выбирает участников и может вызывать Architect,
+Developer, Tester, Security и Reviewer в любом порядке. Framework ограничивает число
+rounds, stalls и resets. После завершения workflow приложение отдельно собирает MCP
+diff/evidence, выполняет `dotnet test` в write-режиме и передаёт наблюдаемые данные
+финальному typed Reviewer. Поэтому текстовый ответ Magentic сам по себе не считается
+подтверждением изменения workspace.
+
+По умолчанию остаётся `WORKFLOW_ORCHESTRATION=legacy`, чтобы сравнивать оба режима.
+
 ## Важные ограничения
 
 В демонстрации включён `EnableSensitiveData`, поэтому в консоль попадают prompt, tool arguments и ответы модели. Это удобно для исследования порядка выполнения, но не должно включаться без оценки риска в production. Для безопасного режима отключите эту опцию в настройках workflow и агентов.
