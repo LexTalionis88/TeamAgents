@@ -12,14 +12,15 @@ workspace через MCP, Tester/Security/Reviewer проводят провер
 изменёнными файлами, результатами команд, diff/evidence и trace. Участие
 пользователя заканчивается на постановке требований.
 
-Рабочая solution: [`workspace.slnx`](../workspace.slnx). В ней находятся два
-консольных проекта: `src/McpServer` и `src/AgentClient`. Файл
+Рабочая solution: [`workspace.slnx`](../workspace.slnx). В ней находятся
+`src/McpServer`, `src/AgentClient` и тестовый проект.
+Файл
 [`workspace.sln`](../workspace.sln) оставлен для совместимости.
 
 - `src/McpServer` — MCP-сервер со stdio-транспортом и инструментами статуса,
   файлов workspace, patch, .NET-проверок и evidence.
 - `src/AgentClient` — клиент Microsoft Agent Framework с провайдером Ollama,
-  OpenRouter, Gemini или Groq. Он запускает MCP-сервер, обнаруживает tools и
+  OpenRouter, Gemini, Groq, Tuzi или Cloudflare Workers AI. Он запускает MCP-сервер, обнаруживает tools и
   проводит typed workflow через Manager, Architect, Developer, Tester, Security
   и Reviewer. Перед архитектурным этапом Manager разбивает требования в
   ограниченный `TaskPlan` из последовательных `WorkItem`.

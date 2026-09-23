@@ -8,7 +8,8 @@ namespace AgentClient.Infrastructure.Mcp;
 internal sealed class WorkspaceMcpInvoker(
     IReadOnlyList<AITool> tools,
     ActivitySource activitySource,
-    WorkflowRunMetadata metadata)
+    WorkflowRunMetadata metadata,
+    CancellationToken workflowCancellationToken = default)
 {
     /// <summary>
     /// Вызывает MCP-инструмент и создаёт span с его результатом.
@@ -27,6 +28,11 @@ internal sealed class WorkspaceMcpInvoker(
         int iteration,
         CancellationToken cancellationToken = default)
     {
+        using var linkedCancellation = workflowCancellationToken.CanBeCanceled && cancellationToken.CanBeCanceled
+            ? CancellationTokenSource.CreateLinkedTokenSource(workflowCancellationToken, cancellationToken)
+            : null;
+        var effectiveCancellationToken = linkedCancellation?.Token ??
+            (workflowCancellationToken.CanBeCanceled ? workflowCancellationToken : cancellationToken);
         var tool = tools.FirstOrDefault(candidate =>
             candidate.Name.Equals(toolName, StringComparison.OrdinalIgnoreCase));
         using var activity = activitySource.StartActivity($"execute_tool {toolName}");
@@ -39,10 +45,12 @@ internal sealed class WorkspaceMcpInvoker(
         if (tool is McpClientTool mcpTool)
         {
             var result = await mcpTool.CallAsync(
-                arguments.ToDictionary(
-                    pair => pair.Key,
-                    pair => (object?)pair.Value),
-                cancellationToken: cancellationToken);
+                    arguments.ToDictionary(
+                        pair => pair.Key,
+                        pair => (object?)pair.Value),
+                    cancellationToken: effectiveCancellationToken)
+                .AsTask()
+                .WaitAsync(effectiveCancellationToken);
             text = string.Join(
                 Environment.NewLine,
                 result.Content.Select(content => content.ToString()));
@@ -55,7 +63,7 @@ internal sealed class WorkspaceMcpInvoker(
         {
             var result = await function.InvokeAsync(
                 new AIFunctionArguments(arguments.ToDictionary()),
-                cancellationToken);
+                effectiveCancellationToken);
             text = result?.ToString() ?? string.Empty;
         }
         else

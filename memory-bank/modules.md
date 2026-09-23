@@ -43,8 +43,9 @@ Developer через MCP.
 - `src/AgentClient/Infrastructure/Observability/` — correlation metadata,
   spans workflow и console exporter.
 
-Предметная область пока не определена; система является техническим примером
-интеграции MCP, Agent Framework и локального Ollama.
+Система остаётся техническим примером интеграции MCP, Agent Framework,
+локального Ollama и OpenAI-совместимых облачных провайдеров, включая Cloudflare
+Workers AI.
 
 Для изменения workflow сначала исследовать `AgentClientApplication.cs`,
 `AgentFactory.cs`, `WorkflowContracts.cs` и `EscalatingWorkflow.cs`. Для нового

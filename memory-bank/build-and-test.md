@@ -40,12 +40,27 @@ dotnet test workspace.slnx
   выполнить тот же запуск AgentClient и проверить MCP tool calls и workflow
   transitions в OpenTelemetry. Для Groq typed JSON десериализуется локально:
   `response_format` не должен отправляться вместе с MCP tools.
+- Tuzi E2E: задать `MODEL_PROVIDER=tuzi`, `TUZI_MODEL`,
+  `TUZI_BASE_URL=https://api.tu-zi.com/v1` и `TUZI_API_KEY`, затем выполнить тот
+  же запуск AgentClient. Модель должна поддерживать MCP tool calls и typed JSON;
+  в trace нужно проверить `server.address=api.tu-zi.com`, `gen_ai.request.model`,
+  `execute_tool`, workflow transitions и отсутствие секрета в логах.
+- Cloudflare E2E: задать `MODEL_PROVIDER=cloudflare`,
+  `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` и `CLOUDFLARE_MODEL`, затем
+  выполнить тот же запуск AgentClient. Модель должна поддерживать MCP tool
+  calls; в trace нужно проверить `server.address=api.cloudflare.com`,
+  `gen_ai.request.model`, `execute_tool`, workflow transitions и отсутствие
+  токена в логах. На бесплатной квоте Workers AI доступно 10 000 Neurons в сутки.
 - Контракты: проверить сериализацию нового record и producer/consumer.
 - Декомпозиция: проверить сериализацию `TaskPlan`/`WorkItem`, clamp
   `WORKFLOW_MAX_WORK_ITEMS`, отклонение монолитного плана для multi-concern
   задачи и переход Reviewer -> следующий WorkItem.
-- Таймауты: проверить clamp `WORKFLOW_AGENT_TIMEOUT_SECONDS`, чтобы медленный
-  provider не обрывал typed-вызов раньше установленного лимита.
+- Таймауты: проверить clamp `WORKFLOW_AGENT_TIMEOUT_SECONDS` и общего
+  `WORKFLOW_TIMEOUT_SECONDS`, чтобы медленный provider не обрывал typed-вызов
+  раньше установленного лимита.
+- Read-only smoke: с `WORKFLOW_READ_ONLY=true` проверить, что агентам доступны
+  только status, diff, evidence и чтение файлов, без patch/replace/check tools;
+  отмена deadline должна завершать зависший MCP/Git subprocess.
 
 Автоматические тесты:
 

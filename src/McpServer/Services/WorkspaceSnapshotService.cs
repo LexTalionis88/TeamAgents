@@ -16,11 +16,11 @@ internal sealed class WorkspaceSnapshotService(
     {
         var trackedDiff = await processRunner.RunTextAsync(
             "git",
-            ["diff", "--", "."],
+            ["--no-pager", "diff", "--no-ext-diff", "--no-textconv", "--", "."],
             cancellationToken);
         var trackedFiles = (await processRunner.RunTextAsync(
                 "git",
-                ["diff", "--name-only", "--", "."],
+                ["--no-pager", "diff", "--name-only", "--no-ext-diff", "--no-textconv", "--", "."],
                 cancellationToken))
             .Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         var status = await processRunner.RunTextAsync(
@@ -39,7 +39,7 @@ internal sealed class WorkspaceSnapshotService(
         {
             var untrackedDiff = await processRunner.RunTextAsync(
                 "git",
-                ["diff", "--no-index", "--", "/dev/null", relativePath],
+                ["--no-pager", "diff", "--no-index", "--no-ext-diff", "--no-textconv", "--", "/dev/null", relativePath],
                 cancellationToken);
             if (!string.IsNullOrWhiteSpace(untrackedDiff) &&
                 !untrackedDiff.Contains("fatal:", StringComparison.OrdinalIgnoreCase))

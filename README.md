@@ -38,10 +38,63 @@ dotnet run --project src/AgentClient -- "Проверь статус MCP-сер�
 `https://api.groq.com/openai/v1` и использует стандартный вызов инструментов
 Agent Framework.
 
+Для Tuzi задайте `MODEL_PROVIDER=tuzi`, точную модель через `TUZI_MODEL`,
+`TUZI_BASE_URL=https://api.tu-zi.com/v1` и `TUZI_API_KEY`. Например:
+
+```text
+set MODEL_PROVIDER=tuzi
+set TUZI_MODEL=gpt-4.1-mini
+set TUZI_BASE_URL=https://api.tu-zi.com/v1
+set TUZI_API_KEY=...
+dotnet run --project src/AgentClient -- "Проверь статус MCP-сервера"
+```
+
+`TUZI_API_KEY` читается только из окружения и не должен попадать в исходники,
+документацию или логи. Модель должна поддерживать вызовы инструментов и typed JSON.
+
+Для Tuzi задайте `MODEL_PROVIDER=tuzi`, точную модель через `TUZI_MODEL`,
+`TUZI_BASE_URL=https://api.tu-zi.com/v1` и `TUZI_API_KEY`. Например:
+
+```text
+set MODEL_PROVIDER=tuzi
+set TUZI_MODEL=gpt-4.1-mini
+set TUZI_BASE_URL=https://api.tu-zi.com/v1
+set TUZI_API_KEY=...
+dotnet run --project src/AgentClient -- "Проверь статус MCP-сервера"
+```
+
+`TUZI_API_KEY` читается только из окружения и не должен попадать в исходники,
+документацию или логи. Модель должна поддерживать вызовы инструментов и typed JSON.
+
+Для Cloudflare Workers AI задайте `MODEL_PROVIDER=cloudflare`,
+`CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` и, при необходимости,
+`CLOUDFLARE_MODEL`. По умолчанию используется
+`@cf/ibm-granite/granite-4.0-h-micro`; endpoint строится из account ID. Для
+нестандартного endpoint (например, AI Gateway) задайте `CLOUDFLARE_BASE_URL`.
+
+```text
+set MODEL_PROVIDER=cloudflare
+set CLOUDFLARE_ACCOUNT_ID=...
+set CLOUDFLARE_API_TOKEN=...
+set CLOUDFLARE_MODEL=@cf/ibm-granite/granite-4.0-h-micro
+dotnet run --project src/AgentClient -- "Проверь статус MCP-сервера"
+```
+
+Workers AI предоставляет OpenAI-совместимый Chat Completions endpoint и модели
+с function calling. На бесплатном плане действует общая квота 10 000 Neurons в
+сутки, а не постоянная бесплатность конкретной модели; квота сбрасывается в
+00:00 UTC. Для текущего workflow подходят Granite 4.0 H-Micro (дешевле и с
+function calling) и GPT-OSS 20B (function calling/reasoning, но дороже).
+Токен должен иметь права Workers AI Read и Workers AI Edit.
+
 Количество review/fix-циклов задаётся `WORKFLOW_MAX_CYCLES` (по умолчанию 2),
 а максимальное число последовательных `WorkItem` —
 `WORKFLOW_MAX_WORK_ITEMS` (по умолчанию 6). Таймаут одного typed-вызова агента
-задаётся `WORKFLOW_AGENT_TIMEOUT_SECONDS` (по умолчанию 180 секунд).
+задаётся `WORKFLOW_AGENT_TIMEOUT_SECONDS` (по умолчанию 180 секунд). Общий
+deadline запуска задаётся `WORKFLOW_TIMEOUT_SECONDS` (по умолчанию 900 секунд,
+диапазон 60–3600); после его истечения отменяются AI-вызовы и MCP stdio-соединение.
+Для диагностических задач включите `WORKFLOW_READ_ONLY=true`: Developer получает
+только инструменты чтения, а workflow возвращает обзор без изменения workspace.
 
 Клиент использует локальную интеграцию `OllamaSharp`; данные
 обрабатываются локально.

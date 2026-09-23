@@ -27,6 +27,15 @@ internal sealed class GitWorkspaceService(
             return applyPatchFormatResult;
         }
 
+        // Сначала обрабатываем новый текстовый файл вручную: некоторые модели
+        // возвращают короткий hunk "@@" без диапазонов, который git apply
+        // принимает как пустой файл.
+        var preflightUntrackedFileResult = await TryApplyUntrackedNewFileAsync(patch, cancellationToken);
+        if (preflightUntrackedFileResult is not null)
+        {
+            return preflightUntrackedFileResult;
+        }
+
         var check = await processRunner.RunAsync(
             "git",
             ["apply", "--check", "--whitespace=nowarn", "-"],

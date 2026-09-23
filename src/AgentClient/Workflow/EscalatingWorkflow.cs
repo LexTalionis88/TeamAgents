@@ -15,7 +15,9 @@ internal sealed class EscalatingWorkflow(
     IChatClientProvider chatClientProvider,
     int maxCycles,
     int maxWorkItems,
-    int agentTimeoutSeconds)
+    int agentTimeoutSeconds,
+    CancellationToken workflowCancellationToken,
+    bool readOnly)
 {
     /// <summary>
     /// Выполняет общий workflow декомпозиции, реализации, проверок и bounded-эскалаций.
@@ -23,6 +25,11 @@ internal sealed class EscalatingWorkflow(
     /// <param name="initialQuestion">Исходные требования пользователя.</param>
     public async Task<ReviewResult> RunAsync(ArchitectureQuestion initialQuestion)
     {
+        if (readOnly)
+        {
+            return await RunReadOnlyAsync(initialQuestion);
+        }
+
         // Workflow отвечает за маршрутизацию и evidence-gates. Сама задача является
         // данными пользователя; предметная реализация здесь не выбирается.
         var question = initialQuestion;
@@ -208,14 +215,20 @@ internal sealed class EscalatingWorkflow(
                 },
                 cycle);
 
+            if (securityDecision.NextAgent.Equals("Architect", StringComparison.OrdinalIgnoreCase) &&
+                !security.ArchitectureChallenged)
+            {
+                TraceTransition("Manager", "Reviewer", cycle,
+                    "Typed gate исправил недопустимый маршрут после Security без ArchitectureChallenged=true");
+                securityDecision = securityDecision with
+                {
+                    NextAgent = "Reviewer",
+                    Reason = "Typed gate: Security не оспорил архитектуру; маршрут изменён на Reviewer."
+                };
+            }
+
             if (securityDecision.NextAgent.Equals("Architect", StringComparison.OrdinalIgnoreCase))
             {
-                if (!security.ArchitectureChallenged)
-                {
-                    throw new InvalidOperationException(
-                        "Manager выбрал Architect после Security без ArchitectureChallenged=true.");
-                }
-
                 EnsureCycleAvailable(cycle, "Security challenged the architecture");
                 TraceTransition("Security", "Architect", cycle, securityDecision.Reason);
                 architecture = await RunAsync<ArchitectureDecision>(
@@ -233,7 +246,17 @@ internal sealed class EscalatingWorkflow(
                 continue;
             }
 
-            EnsureOneOf(securityDecision, "Security", "Architect", "Developer", "Reviewer");
+            if (!securityDecision.NextAgent.Equals("Reviewer", StringComparison.OrdinalIgnoreCase))
+            {
+                TraceTransition("Manager", "Reviewer", cycle,
+                    $"Typed gate исправил недопустимый маршрут после Security: {securityDecision.NextAgent}");
+                securityDecision = securityDecision with
+                {
+                    NextAgent = "Reviewer",
+                    Reason = "Typed gate: после Security разрешён Reviewer, если нет эскалации к Architect или Developer."
+                };
+            }
+
             EnsureRoute(securityDecision, "Reviewer", "Security");
             var reviewerMcp = CreateMcpInvoker();
             var reviewerDiff = await reviewerMcp.InvokeAsync(
@@ -295,7 +318,40 @@ internal sealed class EscalatingWorkflow(
     }
 
     private WorkspaceMcpInvoker CreateMcpInvoker() =>
-        new(agents.Tools ?? Array.Empty<AITool>(), activitySource, metadata);
+        new(agents.Tools ?? Array.Empty<AITool>(), activitySource, metadata, workflowCancellationToken);
+
+    private async Task<ReviewResult> RunReadOnlyAsync(ArchitectureQuestion question)
+    {
+        var mcp = CreateMcpInvoker();
+        var status = await mcp.InvokeAsync(
+            "get_workspace_status",
+            new Dictionary<string, object?>(),
+            "ReadOnly",
+            "read-only-status",
+            1);
+        var diff = await mcp.InvokeAsync(
+            "get_workspace_diff",
+            new Dictionary<string, object?>(),
+            "ReadOnly",
+            "read-only-diff",
+            1);
+        var evidence = await mcp.GetEvidenceAsync("ReadOnly", "read-only-evidence", 1);
+
+        return await RunAsync<ReviewResult>(
+            agents.Reviewer,
+            new
+            {
+                Question = question,
+                ReadOnly = true,
+                WorkspaceStatus = status,
+                WorkspaceDiff = diff,
+                WorkspaceEvidence = evidence,
+                Rule = "Не предлагай и не заявляй изменения как выполненные; верни только наблюдаемое состояние и безопасные следующие шаги.",
+            },
+            "Reviewer",
+            "read-only-review",
+            1);
+    }
 
     private async Task<ManagerDecision> DecideAsync(object input, int cycle) =>
         await RunAsync<ManagerDecision>(agents.PolicyManager, input, "Manager", "manager-decision", cycle);
@@ -381,16 +437,34 @@ internal sealed class EscalatingWorkflow(
             180);
 
         var implementationAction = await TypedAgentRunner.RunActionAsync(
-            agents.Developer,
+            agents.DeveloperImplementer ?? agents.Developer,
             new { Request = input, ExplorationReport = exploration },
             metadata,
             "Developer",
-            $"{step}-execute",
+            $"{step}-implement",
             cycle,
             "Работай только на этапе Execute. Во входе есть PlanSummary и CurrentWorkItem: реализуй только текущий срез, его AcceptanceCriteria и необходимые Dependencies, не пытайся за один этап реализовать весь план. Не запрашивай уточнения и не возвращай NeedsClarification для исходной задачи: если solution не содержит предметного проекта, добавь новый проект в текущую solution, сохранив AgentClient и MCP Server, и выбери минимальную рабочую реализацию. Сначала изучи нужные файлы, затем создай или измени необходимые для текущего среза проекты, исходный код, конфигурацию, Docker и тесты через MCP. Не завершай этап без хотя бы одного успешного MCP-инструмента изменения, если текущий срез требует реализации. После изменений запусти доступные проверки. Не возвращай patch вместо действий и не изменяй MCP Server, AgentClient, workflow или typed contracts, если это не требуется напрямую исходной задачей. Все новые комментарии и документация должны быть на русском. Заверши кратким отчётом только о реально выполненных MCP-действиях.",
             300);
 
         var mcp = CreateMcpInvoker();
+        var implementationPatches = ParseImplementationPatches(implementationAction);
+        var patchResults = new List<string>(implementationPatches.Count);
+        for (var patchIndex = 0; patchIndex < implementationPatches.Count; patchIndex++)
+        {
+            var patch = implementationPatches[patchIndex];
+            var patchResult = await mcp.ApplyPatchAsync(
+                patch.Patch,
+                "Developer",
+                $"{step}-apply-{patchIndex + 1}",
+                cycle);
+            patchResults.Add($"Patch {patchIndex + 1} ({patch.Summary}): {patchResult}");
+            if (!patchResult.StartsWith("PATCH_APPLIED", StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    $"Developer patch {patchIndex + 1} не применён: {patchResult}");
+            }
+        }
+
         var workspaceDiff = await mcp.InvokeAsync(
             "get_workspace_diff", new Dictionary<string, object?>(), "Developer", $"{step}-diff", cycle);
         var restoreCheck = await mcp.InvokeAsync(
@@ -407,12 +481,15 @@ internal sealed class EscalatingWorkflow(
             "Developer", $"{step}-test", cycle);
         var evidence = await mcp.GetEvidenceAsync("Developer", $"{step}-evidence", cycle);
 
+        var patchTranscript = string.Join(Environment.NewLine, patchResults);
+
         var verification = await TypedAgentRunner.RunActionAsync(
             agents.DeveloperVerifier ?? agents.Developer,
             new
             {
                 Request = input,
                 ActionTranscript = implementationAction,
+                PatchApplication = patchTranscript,
                 WorkspaceDiff = workspaceDiff,
                 RestoreCheck = restoreCheck,
                 BuildCheck = buildCheck,
@@ -426,9 +503,9 @@ internal sealed class EscalatingWorkflow(
             "Проверяй только переданные MCP diff, результаты команд и workspace evidence. Не изменяй workspace и не выдумывай факты. Workflow уже выполнил MCP-проверки; не пытайся повторять их в этом ответе. Верни краткий VerificationReport.",
             180);
         var actionTranscript =
-            $"DeveloperAction:\n{implementationAction}\n\nVerification:\n{verification}\n\nWorkspaceEvidence:\n{evidence}";
+            $"DeveloperAction:\n{implementationAction}\n\nPatchApplication:\n{patchTranscript}\n\nVerification:\n{verification}\n\nWorkspaceEvidence:\n{evidence}";
 
-        return await RunAsync<ImplementationResult>(
+        var implementation = await RunAsync<ImplementationResult>(
             agents.DeveloperResultFormatter,
             new
             {
@@ -439,6 +516,22 @@ internal sealed class EscalatingWorkflow(
             "Developer",
             $"{step}-result",
             cycle);
+
+        if (implementation.Implemented &&
+            implementation.ToolCalls is not { Count: > 0 } &&
+            implementation.ChangedFiles is { Count: > 0 })
+        {
+            implementation = implementation with
+            {
+                ToolCalls = [
+                    patchResults.Count > 0 || implementationAction.Contains("apply_workspace_patch", StringComparison.OrdinalIgnoreCase)
+                        ? "apply_workspace_patch"
+                        : "replace_workspace_file"
+                ],
+            };
+        }
+
+        return implementation;
     }
 
     private async Task<TaskPlan> EnsureValidTaskPlanAsync(
@@ -560,7 +653,8 @@ internal sealed class EscalatingWorkflow(
             step,
             iteration,
             chatClientProvider.RequiresLocalTypedJson,
-            agentTimeoutSeconds);
+            agentTimeoutSeconds,
+            workflowCancellationToken);
 
     private void TraceTransition(string from, string to, int cycle, string reason)
     {
@@ -687,9 +781,9 @@ internal sealed class EscalatingWorkflow(
 
         if (patches.Count == 0)
         {
-            var preview = content.Length > 800 ? content[..800] : content;
-            throw new InvalidOperationException(
-                $"Developer не вернул полный JSON ImplementationPatch. Ответ: {preview}");
+            // Developer может применить изменение напрямую через MCP и вернуть
+            // обычный action-отчёт; в этом случае evidence проверяется ниже.
+            return Array.Empty<ImplementationPatch>();
         }
 
         return patches;

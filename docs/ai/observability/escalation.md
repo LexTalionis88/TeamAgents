@@ -42,8 +42,13 @@ Orchestrator проверяет допустимые переходы:
 
 Каждый повторный шаг получает увеличенный iteration и trace transition span с from.agent, to.agent и manager.reason.
 
-Таймаут одного typed-вызова агента задаётся `WORKFLOW_AGENT_TIMEOUT_SECONDS` и
-по умолчанию равен 180 секундам; значение ограничивается диапазоном 30–600.
+Таймаут одного typed-вызова агента задаётся `WORKFLOW_AGENT_TIMEOUT_SECONDS`, а
+общий deadline запуска — `WORKFLOW_TIMEOUT_SECONDS`. Значения по умолчанию равны
+180 и 900 секундам; диапазоны — 30–600 и 60–3600 соответственно.
+
+Для диагностического запуска `WORKFLOW_READ_ONLY=true` переключает workflow в
+режим наблюдения: инструменты записи и команды проверок не передаются агентам,
+а итоговый Reviewer работает только с MCP status, diff и evidence.
 
 ## Сценарий auth/token lifetime
 

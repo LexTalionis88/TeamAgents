@@ -25,7 +25,7 @@ internal sealed class ProcessRunner(IWorkspacePathResolver pathResolver) : IProc
             {
                 FileName = fileName,
                 WorkingDirectory = pathResolver.WorkspaceRoot,
-                RedirectStandardInput = standardInput is not null,
+                RedirectStandardInput = true,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
@@ -39,16 +39,33 @@ internal sealed class ProcessRunner(IWorkspacePathResolver pathResolver) : IProc
         }
 
         process.Start();
-        if (standardInput is not null)
+        try
         {
-            await process.StandardInput.WriteAsync(standardInput.AsMemory(), cancellationToken);
+            if (standardInput is not null)
+            {
+                await process.StandardInput.WriteAsync(standardInput.AsMemory(), cancellationToken);
+            }
             process.StandardInput.Close();
-        }
 
-        var stdout = process.StandardOutput.ReadToEndAsync(cancellationToken);
-        var stderr = process.StandardError.ReadToEndAsync(cancellationToken);
-        await process.WaitForExitAsync(cancellationToken);
-        return new ProcessResult(process.ExitCode, (await stdout) + (await stderr));
+            var stdout = process.StandardOutput.ReadToEndAsync(cancellationToken);
+            var stderr = process.StandardError.ReadToEndAsync(cancellationToken);
+            await process.WaitForExitAsync(cancellationToken);
+            return new ProcessResult(process.ExitCode, (await stdout) + (await stderr));
+        }
+        catch
+        {
+            StopProcess(process);
+            try
+            {
+                await process.WaitForExitAsync();
+            }
+            catch
+            {
+                // Сохраняем исходную ошибку отмены или запуска процесса.
+            }
+
+            throw;
+        }
     }
 
     /// <summary>
@@ -62,4 +79,23 @@ internal sealed class ProcessRunner(IWorkspacePathResolver pathResolver) : IProc
         IReadOnlyList<string> arguments,
         CancellationToken cancellationToken) =>
         (await RunAsync(fileName, arguments, standardInput: null, cancellationToken)).Output;
+
+    private static void StopProcess(Process process)
+    {
+        try
+        {
+            if (!process.HasExited)
+            {
+                process.Kill(entireProcessTree: true);
+            }
+        }
+        catch (InvalidOperationException)
+        {
+            // Процесс уже завершился между проверкой и Kill.
+        }
+        catch (System.ComponentModel.Win32Exception)
+        {
+            // ОС не позволила повторно открыть уже завершившийся процесс.
+        }
+    }
 }

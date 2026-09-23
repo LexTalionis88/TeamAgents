@@ -18,9 +18,13 @@ internal sealed class AgentClientApplication
     public async Task RunAsync(string[] args, CancellationToken cancellationToken = default)
     {
         var options = AgentClientOptions.FromEnvironment();
-        await using var mcp = await McpServerConnection.ConnectAsync(options, cancellationToken);
-        Console.WriteLine(
-            $"Соединение с MCP установлено. Инструменты: {string.Join(", ", mcp.Tools.Select(tool => tool.Name))}");
+        using var workflowTimeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        workflowTimeout.CancelAfter(TimeSpan.FromSeconds(options.WorkflowTimeoutSeconds));
+        var workflowCancellationToken = workflowTimeout.Token;
+
+        await using var mcp = await McpServerConnection.ConnectAsync(options, workflowCancellationToken);
+        Console.WriteLine("Соединение с MCP установлено.");
+        Console.WriteLine($"Режим workspace: {(options.WorkflowReadOnly ? "read-only" : "read-write")}");
 
         using var telemetry = TelemetryScope.Create();
         var provider = ChatClientProviderFactory.Resolve(options.ModelProvider);
@@ -31,7 +35,10 @@ internal sealed class AgentClientApplication
             chatClient,
             mcp.Tools.ToList(),
             provider.MaxAgentOutputTokens,
-            provider.PreferCompactAgentInstructions);
+            provider.PreferCompactAgentInstructions,
+            options.WorkflowReadOnly);
+        Console.WriteLine(
+            $"Инструменты агентов: {string.Join(", ", agents.Tools?.Select(tool => tool.Name) ?? Array.Empty<string>())}");
         var question = CreateQuestion(args, options, provider);
 
         Console.WriteLine(
@@ -47,7 +54,9 @@ internal sealed class AgentClientApplication
             provider,
             options.MaxCycles,
             options.MaxWorkItems,
-            options.AgentTimeoutSeconds);
+            options.AgentTimeoutSeconds,
+            workflowCancellationToken,
+            options.WorkflowReadOnly);
         try
         {
             var result = await workflow.RunAsync(question);

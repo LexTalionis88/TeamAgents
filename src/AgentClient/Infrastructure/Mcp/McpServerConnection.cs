@@ -40,13 +40,23 @@ internal sealed class McpServerConnection : IAsyncDisposable
             Name = "workspace-mcp-server",
             Command = "dotnet",
             Arguments = arguments,
-        }));
+        }),
+        clientOptions: null,
+        cancellationToken: cancellationToken);
 
-        var tools = (await client.ListToolsAsync())
-            .Cast<AITool>()
-            .ToArray();
+        try
+        {
+            var tools = (await client.ListToolsAsync(cancellationToken: cancellationToken))
+                .Cast<AITool>()
+                .ToArray();
 
-        return new McpServerConnection(client, tools);
+            return new McpServerConnection(client, tools);
+        }
+        catch
+        {
+            await client.DisposeAsync();
+            throw;
+        }
     }
 
     /// <summary>

@@ -17,12 +17,12 @@ acceptance-примера. Он не должен распознавать за�
 Провайдеры также объявляют технические capability для агентских вызовов:
 безопасный бюджет вывода и необходимость компактного профиля инструкций. Эти
 ограничения остаются в адаптере конкретного провайдера; orchestration-код не
-содержит ветвлений по Groq, Gemini или другому поставщику.
+содержит ветвлений по Groq, Gemini, Cloudflare или другому поставщику.
 
 ## Текущее состояние
 
-Workspace содержит [`workspace.slnx`](../workspace.slnx) с двумя консольными
-проектами: `src/McpServer` и `src/AgentClient`.
+Workspace содержит [`workspace.slnx`](../workspace.slnx) с проектами
+`src/McpServer`, `src/AgentClient` и тестами.
 
 ## Проекты и слои
 
@@ -88,6 +88,10 @@ Correlation и metadata запуска описаны в docs/ai/observability/c
 AgentClient сначала получает от Manager `TaskPlan` с последовательными
 `WorkItem`, затем исполняет для каждого среза typed workflow:
 `ArchitectureQuestion -> ArchitectureDecision -> ImplementationResult -> TestReport -> SecurityReview -> ReviewResult`.
+На этапе Developer workflow применяет подтверждённые изменения через MCP
+`apply_workspace_patch` или `replace_workspace_file`, а затем собирает diff и
+evidence; текстовый отчёт без
+подтверждённого MCP-изменения не считается реализацией.
 Только после одобрения текущего среза workflow передаёт Developer следующий
 `WorkItem`; review/fix-циклы остаются bounded. Описание контрактов: [`docs/ai/observability/typed-contracts.md`](../docs/ai/observability/typed-contracts.md).
 
@@ -109,9 +113,9 @@ contracts и bounded review/fix cycles.
 
 ## Внешние системы
 
-Внешние системы: локальный Ollama через `OllamaSharp`, OpenRouter/Gemini/Groq через
-OpenAI-compatible `IChatClient` и MCP-протокол между двумя локальными
-процессами. Gemini и Groq используют локальную typed JSON-десериализацию в
+Внешние системы: локальный Ollama через `OllamaSharp`, OpenRouter/Gemini/Groq/
+Tuzi/Cloudflare Workers AI через OpenAI-compatible `IChatClient` и MCP-протокол
+между двумя локальными процессами. Gemini, Groq и Cloudflare используют локальную typed JSON-десериализацию в
 `TypedAgentRunner`, чтобы схема ответа провайдера не конфликтовала с вызовом
 функций; typed JSON валидируется локально.
 RabbitMQ пока не подключён; его topology и маршрут сообщений

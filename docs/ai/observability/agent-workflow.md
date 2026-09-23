@@ -96,6 +96,38 @@ set GROQ_API_KEY=...
 dotnet run --project src/AgentClient -- "Проверь статус MCP-сервера"
 ```
 
+Для Tuzi:
+
+```text
+set MODEL_PROVIDER=tuzi
+set TUZI_MODEL=gpt-4.1-mini
+set TUZI_BASE_URL=https://api.tu-zi.com/v1
+set TUZI_API_KEY=...
+dotnet run --project src/AgentClient -- "Проверь статус MCP-сервера"
+```
+
+Tuzi подключается как отдельный OpenAI-совместимый provider. `TUZI_API_KEY`
+читается только из окружения; его нельзя включать в prompt, trace, README или
+исходный код. Для E2E-проверки нужно подтвердить в trace фактические MCP
+`execute_tool` и `gen_ai.request.model`, а не только успешный текстовый ответ.
+
+Для Cloudflare Workers AI:
+
+```text
+set MODEL_PROVIDER=cloudflare
+set CLOUDFLARE_ACCOUNT_ID=...
+set CLOUDFLARE_API_TOKEN=...
+set CLOUDFLARE_MODEL=@cf/ibm-granite/granite-4.0-h-micro
+dotnet run --project src/AgentClient -- "Проверь статус MCP-сервера"
+```
+
+Cloudflare подключается через OpenAI-совместимый endpoint
+`https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/v1`. Для
+Cloudflare typed JSON разбирается локально, потому что JSON Mode не гарантирует
+полное соответствие схеме. В trace нужно проверить
+`server.address=api.cloudflare.com`, `gen_ai.request.model`, `execute_tool`,
+workflow transitions и отсутствие токена в логах.
+
 ## Важные ограничения
 
 В демонстрации включён `EnableSensitiveData`, поэтому в консоль попадают prompt, tool arguments и ответы модели. Это удобно для исследования порядка выполнения, но не должно включаться без оценки риска в production. Для безопасного режима отключите эту опцию в настройках workflow и агентов.

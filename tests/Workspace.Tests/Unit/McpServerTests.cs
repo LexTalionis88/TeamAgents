@@ -135,6 +135,40 @@ public sealed class McpServerTests
         }
     }
 
+    /// <summary>
+    /// Проверяет безопасное применение короткого unified diff для нового файла.
+    /// </summary>
+    [Test]
+    public async Task GitWorkspaceServicePreservesContentFromShortNewFilePatch()
+    {
+        var workspace = CreateTemporaryWorkspace();
+        try
+        {
+            var service = new GitWorkspaceService(
+                new WorkspacePathResolver(workspace),
+                new ProcessRunner(new WorkspacePathResolver(workspace)));
+
+            var result = await service.ApplyPatchAsync(
+                "diff --git a/smoke.txt b/smoke.txt\n" +
+                "new file mode 100644\n" +
+                "--- /dev/null\n" +
+                "+++ b/smoke.txt\n" +
+                "@@\n" +
+                "+cloudflare write smoke passed",
+                CancellationToken.None);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.EqualTo("PATCH_APPLIED"));
+                Assert.That(File.ReadAllText(Path.Combine(workspace, "smoke.txt")), Is.EqualTo("cloudflare write smoke passed"));
+            });
+        }
+        finally
+        {
+            Directory.Delete(workspace, recursive: true);
+        }
+    }
+
     private static string CreateTemporaryWorkspace()
     {
         var path = Path.Combine(Path.GetTempPath(), $"mcp-server-tests-{Guid.NewGuid():N}");

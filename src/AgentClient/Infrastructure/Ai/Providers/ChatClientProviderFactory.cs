@@ -11,6 +11,8 @@ internal static class ChatClientProviderFactory
             ["gemini"] = new GeminiChatClientProvider(),
             ["openrouter"] = new OpenRouterChatClientProvider(),
             ["ollama"] = new OllamaChatClientProvider(),
+            ["tuzi"] = new TuziChatClientProvider(),
+            ["cloudflare"] = new CloudflareChatClientProvider(),
         };
 
     /// <summary>

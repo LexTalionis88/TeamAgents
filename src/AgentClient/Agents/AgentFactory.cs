@@ -13,12 +13,26 @@ internal static class AgentFactory
     /// <param name="tools">MCP-инструменты, доступные агентам.</param>
     /// <param name="maxAgentOutputTokens">Безопасный максимум токенов ответа.</param>
     /// <param name="compactAgentInstructions">Нужно ли использовать сокращённые инструкции.</param>
+    /// <param name="readOnly">Нужно ли оставить агентам только безопасные инструменты чтения.</param>
     public static AgentSet Create(
         IChatClient chatClient,
         IList<AITool> tools,
         int maxAgentOutputTokens = 8192,
-        bool compactAgentInstructions = false)
+        bool compactAgentInstructions = false,
+        bool readOnly = false)
     {
+        if (readOnly)
+        {
+            tools = SelectTools(
+                tools,
+                "echo",
+                "get_workspace_diff",
+                "get_workspace_evidence",
+                "get_workspace_status",
+                "list_workspace_files",
+                "read_workspace_file");
+        }
+
         AIAgent BuildAgent(
             string name,
             string instructions,
@@ -33,7 +47,8 @@ internal static class AgentFactory
                 maximumIterations,
                 maxOutputTokens,
                 maxAgentOutputTokens,
-                compactAgentInstructions);
+                compactAgentInstructions,
+                readOnly);
 
         var baseAgents = new AgentSet(
             BuildAgent("Manager",
@@ -65,8 +80,8 @@ internal static class AgentFactory
                 maximumIterations: 1),
             DeveloperImplementer = BuildAgent(
                 "DeveloperImplementer",
-                "Работай только на этапе Implement. Источник задачи — Requirements.question во входном контракте; архитектурное решение является только проверяемой подсказкой. Не подменяй исходные требования инфраструктурным примером и не изменяй MCP Server, AgentClient, workflow или typed contracts, если это не требуется напрямую исходной задачей. Верни строго JSON по ImplementationPatch с полями Patch и Summary. Ты автор кода: Patch должен содержать фактическую реализацию переданных требований независимо от предметной области и структуры проекта. Используй обычный git unified diff, принимаемый git apply: начни с diff --git a/... b/..., используй пути ---/+++, каждую добавленную строку начинай с +. Не используй *** Begin Patch, Markdown fences, многоточия, псевдокод или предположения о предметной области. Точно сохрани указанные технологии, хранилища, инфраструктуру, API, тесты и документацию. Новые комментарии и документация должны быть на русском. На этом этапе не вызывай инструменты и не возвращай текст вне JSON.",
-                Array.Empty<AITool>(),
+                "Работай только на этапе Implement. Источник задачи — Requirements.question во входном контракте; архитектурное решение является только проверяемой подсказкой. Не подменяй исходные требования инфраструктурным примером и не изменяй MCP Server, AgentClient, workflow или typed contracts, если это не требуется напрямую исходной задачей. Сначала изучи нужные файлы через MCP, затем реально измени workspace через apply_workspace_patch или replace_workspace_file. Не возвращай patch вместо действий и не утверждай, что файл изменён, без успешного MCP-результата. Точно сохрани указанные технологии, хранилища, инфраструктуру, API, тесты и документацию. Новые комментарии и документация должны быть на русском. Заверши кратким отчётом только о реально выполненных MCP-действиях.",
+                SelectTools(tools, "get_workspace_status", "list_workspace_files", "read_workspace_file", "apply_workspace_patch", "replace_workspace_file", "run_dotnet_check"),
                 maximumIterations: 12,
                 maxOutputTokens: 8192),
             DeveloperVerifier = BuildAgent(
@@ -88,7 +103,8 @@ internal static class AgentFactory
         int maximumIterations = 20,
         int maxOutputTokens = 4096,
         int maxAgentOutputTokens = 8192,
-        bool compactAgentInstructions = false)
+        bool compactAgentInstructions = false,
+        bool readOnly = false)
     {
         if (name is "Architect" or "Tester" or "Security" or "Reviewer")
         {
@@ -98,6 +114,13 @@ internal static class AgentFactory
         var effectiveInstructions = compactAgentInstructions
             ? GetCompactInstructions(name)
             : instructions;
+        if (readOnly)
+        {
+            effectiveInstructions +=
+                "\nREAD_ONLY режим: не изменяй workspace и не пытайся вызвать отсутствующие инструменты записи. " +
+                "Разрешены только наблюдение, чтение файлов, diff, evidence и статус MCP. " +
+                "Если задача требует изменения, укажи это в результате без имитации выполненных действий.";
+        }
         var effectiveMaxOutputTokens = Math.Min(maxOutputTokens, maxAgentOutputTokens);
 
         IChatClient configuredClient = tools.Count == 0

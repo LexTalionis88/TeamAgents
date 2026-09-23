@@ -72,10 +72,26 @@ public sealed class AgentWorkflowE2ETests
         var outputTask = process.StandardOutput.ReadToEndAsync();
         var errorTask = process.StandardError.ReadToEndAsync();
         using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(2));
-        await process.WaitForExitAsync(timeout.Token);
+        var timedOut = false;
+        try
+        {
+            await process.WaitForExitAsync(timeout.Token);
+        }
+        catch (OperationCanceledException) when (timeout.IsCancellationRequested)
+        {
+            timedOut = true;
+            if (!process.HasExited)
+            {
+                process.Kill(entireProcessTree: true);
+            }
+
+            await process.WaitForExitAsync();
+        }
+
         var output = await outputTask;
         var error = await errorTask;
 
+        Assert.That(timedOut, Is.False, "AgentClient E2E process exceeded the two-minute deadline.");
         Assert.That(process.ExitCode, Is.EqualTo(0), $"stderr: {error}");
         return output;
     }

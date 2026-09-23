@@ -36,10 +36,12 @@ internal static class TypedAgentRunner
         string step,
         int iteration,
         string instruction,
-        int timeoutSeconds = 90)
+        int timeoutSeconds = 90,
+        CancellationToken cancellationToken = default)
     {
         using var context = WorkflowRunContext.BeginStep(metadata, agentName, step, iteration);
-        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds));
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(TimeSpan.FromSeconds(timeoutSeconds));
         var json = JsonSerializer.Serialize(input, PromptJsonOptions);
         using var activity = RequestActivitySource.StartActivity("agent.request", ActivityKind.Internal);
         var stopwatch = Stopwatch.StartNew();
@@ -49,20 +51,6 @@ internal static class TypedAgentRunner
         activity?.SetTag("agent.request.kind", "action");
         activity?.SetTag("agent.request.input_chars", json.Length);
         activity?.SetTag("agent.request.timeout_seconds", timeoutSeconds);
-        if (agentName.Equals("Developer", StringComparison.OrdinalIgnoreCase) &&
-            step.EndsWith("-implement", StringComparison.OrdinalIgnoreCase))
-        {
-            instruction = "Верни строго JSON по ImplementationPatch с полями Patch и Summary. " +
-                "Источник задачи — Requirements.question во входном контракте; не подменяй его инфраструктурной задачей. " +
-                "Не изменяй MCP Server, AgentClient, workflow или typed contracts, если это не требуется напрямую исходной задачей. " +
-                "Patch должен быть обычным git unified diff, принимаемым git apply: используй diff --git, " +
-                "пути ---/+++, а каждую добавленную строку начинай с +. Не используй вызовы инструментов, " +
-                "*** Begin Patch, Markdown fences, многоточия, псевдокод или текст вне JSON. Новые комментарии " +
-                "и документация должны быть на русском. Сохрани " +
-                "переданные требования и технологии. Реализуй запрошенный объём и верни один полный " +
-                "применимый patch либо несколько полных patch, если это необходимо.";
-        }
-
         try
         {
             var response = await agent.RunAsync(
@@ -103,10 +91,12 @@ internal static class TypedAgentRunner
         string step,
         int iteration,
         bool requiresLocalTypedJson,
-        int timeoutSeconds = 180)
+        int timeoutSeconds = 180,
+        CancellationToken cancellationToken = default)
     {
         using var context = WorkflowRunContext.BeginStep(metadata, agentName, step, iteration);
-        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds));
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(TimeSpan.FromSeconds(timeoutSeconds));
         var json = JsonSerializer.Serialize(input, PromptJsonOptions);
         using var activity = RequestActivitySource.StartActivity("agent.request", ActivityKind.Internal);
         var stopwatch = Stopwatch.StartNew();
